@@ -13,7 +13,7 @@ interface SettingsContextType {
   isLoading: boolean;
 }
 
-const DEFAULT_SETTINGS: Omit<UserSettings, "id" | "user_id" | "created_at" | "updated_at"> = {
+const DEFAULT_SETTINGS = {
   currency: "IDR",
   date_format: "DD/MM/YYYY",
   language: "id",
@@ -36,25 +36,30 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (error || !data) {
-        // Auto-create default settings
-        const { data: created } = await supabase
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
           .from("user_settings")
-          .insert({ user_id: userId, ...DEFAULT_SETTINGS })
-          .select()
+          .select("*")
+          .eq("user_id", userId)
           .single();
-        if (created) setSettings(created as UserSettings);
-      } else {
-        setSettings(data as UserSettings);
+
+        if (error || !data) {
+          // Auto-create default settings
+          const { data: created } = await supabase
+            .from("user_settings")
+            .insert({ user_id: userId, ...DEFAULT_SETTINGS })
+            .select()
+            .single();
+          if (created) setSettings(created as UserSettings);
+        } else {
+          setSettings(data as UserSettings);
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
     load();
   }, [userId]);
@@ -62,35 +67,66 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
   const togglePrivacy = useCallback(() => {
     setSettings((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, privacy_mode: !prev.privacy_mode };
-      // persist async
-      createClient().from("user_settings").update({ privacy_mode: next.privacy_mode }).eq("user_id", userId);
+      const newPrivacy = !prev.privacy_mode;
+      const next = { ...prev, privacy_mode: newPrivacy };
+      // Persist async
+      createClient()
+        .from("user_settings")
+        .update({ privacy_mode: newPrivacy })
+        .eq("user_id", userId)
+        .then(() => {});
       return next;
     });
   }, [userId]);
 
   const updateSettings = useCallback(async (updates: Partial<UserSettings>) => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("user_settings")
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .select()
-      .single();
-    if (!error && data) setSettings(data as UserSettings);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("user_settings")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .select()
+        .single();
+      if (!error && data) setSettings(data as UserSettings);
+    } catch (e) {
+      console.error("Failed to update settings:", e);
+    }
   }, [userId]);
 
   const formatAmount = useCallback((amount: number): string => {
-    const currency = settings?.currency ?? "IDR";
+    // Privacy mode: show dots
     if (settings?.privacy_mode) return "••••••";
-    if (currency === "IDR") {
-      return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
+    const currency = settings?.currency ?? "IDR";
+    try {
+      if (currency === "IDR") {
+        return new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(amount);
+      }
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch {
+      return `Rp ${amount.toLocaleString("id-ID")}`;
     }
-    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0 }).format(amount);
   }, [settings]);
 
   return (
-    <SettingsContext.Provider value={{ settings, privacyMode: settings?.privacy_mode ?? false, togglePrivacy, updateSettings, formatAmount, isLoading }}>
+    <SettingsContext.Provider value={{
+      settings,
+      privacyMode: settings?.privacy_mode ?? false,
+      togglePrivacy,
+      updateSettings,
+      formatAmount,
+      isLoading,
+    }}>
       {children}
     </SettingsContext.Provider>
   );

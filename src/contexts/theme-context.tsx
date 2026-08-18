@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
 
@@ -19,39 +19,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("fintrack-theme") as Theme | null;
-    const initial = saved || "dark";
-    setTheme(initial);
-    applyTheme(initial);
+    const saved = (localStorage.getItem("fintrack-theme") as Theme) || "dark";
+    setTheme(saved);
+    applyTheme(saved);
     setMounted(true);
   }, []);
 
   function applyTheme(t: Theme) {
     const root = document.documentElement;
+    // Set all required selectors
     root.setAttribute("data-theme", t);
-    if (t === "dark") {
-      root.classList.add("dark");
-      root.classList.remove("light");
-    } else {
-      root.classList.remove("dark");
-      root.classList.add("light");
-    }
-    // Force background color directly
-    document.body.style.backgroundColor = t === "dark" ? "#060d1a" : "#f0f4ff";
-    document.body.style.color = t === "dark" ? "#e8edf5" : "#0f172a";
+    root.classList.remove("dark", "light");
+    root.classList.add(t);
+    // Force body background & color directly for browsers that miss CSS vars
+    document.body.style.backgroundColor = t === "dark" ? "#0F172A" : "#F8FAFC";
+    document.body.style.color = t === "dark" ? "#F1F5F9" : "#0F172A";
+    document.body.setAttribute("data-theme", t);
+    // Update meta theme-color
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", t === "dark" ? "#0F172A" : "#F8FAFC");
   }
 
   function toggleTheme() {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("fintrack-theme", next);
-      applyTheme(next);
-      return next;
-    });
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("fintrack-theme", next);
+    applyTheme(next);
   }
 
-  // Prevent flash of wrong theme
-  if (!mounted) return <div style={{ backgroundColor: "#060d1a", minHeight: "100vh" }}>{children}</div>;
+  // Prevent flash of wrong theme on mount
+  if (!mounted) {
+    return (
+      <div style={{ backgroundColor: "#0F172A", minHeight: "100vh" }}>
+        {children}
+      </div>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
