@@ -23,7 +23,7 @@ import SettingsTab from "@/components/dashboard/tabs/settings-tab";
 import AddTransactionModal from "@/components/dashboard/add-transaction-modal";
 import BottomNav from "@/components/dashboard/bottom-nav";
 import NotificationPanel from "@/components/dashboard/notification-panel";
-import { Bell, Sun, Moon, Eye, EyeOff } from "lucide-react";
+import { Menu, Bell, Sun, Moon, Eye, EyeOff, RefreshCw, LogOut } from "lucide-react";
 
 interface DashboardClientProps {
   user: User;
@@ -32,6 +32,19 @@ interface DashboardClientProps {
 }
 
 export type TabType = "home" | "analytics" | "wallet" | "debt" | "ai" | "profile" | "budget" | "bills" | "goals" | "settings";
+
+const TAB_TITLES: Record<TabType, string> = {
+  home: "Dashboard Utama",
+  analytics: "Analitik",
+  wallet: "Dompet",
+  debt: "Hutang & Piutang",
+  ai: "AI Insights",
+  profile: "Profil",
+  budget: "Budget",
+  bills: "Tagihan",
+  goals: "Impian & Tabungan",
+  settings: "Pengaturan",
+};
 
 function DashboardInner({ user, profile, initialTransactions }: DashboardClientProps) {
   const router = useRouter();
@@ -89,62 +102,75 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   const displayName = profile?.full_name || user.email?.split("@")[0] || "User";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col w-full max-w-lg mx-auto relative app-shell">
-      {/* TREK top header */}
-      <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-30 px-4 py-3 flex items-center justify-between"
-        style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border-default)", boxShadow: "var(--shadow-sm)" }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center neon-indigo flex-shrink-0">
-            <span className="text-sm font-black text-white">F</span>
+    <div className="min-h-screen bg-background flex flex-col w-full max-w-[480px] mx-auto relative app-shell">
+
+      {/* TOP APP BAR */}
+      <header className="app-bar">
+        {/* Left: Logo */}
+        <div className="flex items-center gap-2.5 flex-1">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--accent-blue)" }}>
+            <span className="text-xs font-black text-white">F</span>
           </div>
-          <span className="font-bold text-sm text-foreground tracking-tight">FinTrack</span>
         </div>
-        <div className="flex items-center gap-1">
-          {/* Privacy toggle */}
-          <motion.button whileTap={{ scale: 0.88 }} onClick={togglePrivacy}
-            className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
-            title="Toggle privacy mode">
-            {privacyMode ? <EyeOff className="w-4 h-4 text-rose-400" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
-          </motion.button>
-          {/* Theme toggle */}
-          <motion.button whileTap={{ scale: 0.88 }} onClick={toggleTheme}
-            className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors">
-            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-          </motion.button>
-          {/* Bell */}
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => setShowNotif(!showNotif)}
-            className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors relative">
-            <Bell className="w-4 h-4 text-muted-foreground" />
+
+        {/* Center: Page title */}
+        <span className="app-bar-title absolute left-1/2 -translate-x-1/2">
+          {TAB_TITLES[activeTab]}
+        </span>
+
+        {/* Right: Action icons */}
+        <div className="flex items-center gap-0.5 flex-1 justify-end">
+          <button className="app-bar-icon" onClick={togglePrivacy} title="Sembunyikan saldo">
+            {privacyMode ? <EyeOff className="w-4 h-4 text-rose-400" /> : <Eye className="w-4 h-4" />}
+          </button>
+          <button className="app-bar-icon" onClick={toggleTheme} title="Toggle dark mode">
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <button className="app-bar-icon relative" onClick={() => setShowNotif(!showNotif)} title="Notifikasi">
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                style={{ background: "var(--accent-red)" }}>
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
-          </motion.button>
+          </button>
+          <button className="app-bar-icon" onClick={handleLogout} disabled={isLoggingOut} title="Logout">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
       <NotificationPanel isOpen={showNotif} onClose={() => setShowNotif(false)} />
 
-      {/* Tab content */}
-      <div className="flex-1 pt-14 pb-28 overflow-y-auto overflow-x-hidden scrollbar-hide">
+      {/* CONTENT */}
+      <div className="flex-1 pt-14 pb-24 overflow-y-auto overflow-x-hidden scrollbar-hide">
         <AnimatePresence mode="wait">
-          {activeTab === "home" && <motion.div key="home" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} /></motion.div>}
-          {activeTab === "analytics" && <motion.div key="analytics" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><AnalyticsTab transactions={transactions} /></motion.div>}
-          {activeTab === "wallet" && <motion.div key="wallet" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><WalletTab transactions={transactions} /></motion.div>}
-          {activeTab === "debt" && <motion.div key="debt" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><DebtTab userId={user.id} /></motion.div>}
-          {activeTab === "ai" && <motion.div key="ai" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><AITab transactions={transactions} displayName={displayName} /></motion.div>}
-          {activeTab === "budget" && <motion.div key="budget" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><BudgetTab userId={user.id} transactions={transactions} /></motion.div>}
-          {activeTab === "bills" && <motion.div key="bills" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><BillsTab userId={user.id} /></motion.div>}
-          {activeTab === "goals" && <motion.div key="goals" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><GoalsTab userId={user.id} /></motion.div>}
-          {activeTab === "settings" && <motion.div key="settings" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><SettingsTab user={user} transactions={transactions} userId={user.id} /></motion.div>}
-          {activeTab === "profile" && <motion.div key="profile" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}><ProfileTab user={user} profile={profile} transactions={transactions} onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} /></motion.div>}
+          {activeTab === "home"     && <FadeSlide k="home"><HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} /></FadeSlide>}
+          {activeTab === "analytics"&& <FadeSlide k="analytics"><AnalyticsTab transactions={transactions} /></FadeSlide>}
+          {activeTab === "wallet"   && <FadeSlide k="wallet"><WalletTab transactions={transactions} /></FadeSlide>}
+          {activeTab === "debt"     && <FadeSlide k="debt"><DebtTab userId={user.id} /></FadeSlide>}
+          {activeTab === "ai"       && <FadeSlide k="ai"><AITab transactions={transactions} displayName={displayName} /></FadeSlide>}
+          {activeTab === "budget"   && <FadeSlide k="budget"><BudgetTab userId={user.id} transactions={transactions} /></FadeSlide>}
+          {activeTab === "bills"    && <FadeSlide k="bills"><BillsTab userId={user.id} /></FadeSlide>}
+          {activeTab === "goals"    && <FadeSlide k="goals"><GoalsTab userId={user.id} /></FadeSlide>}
+          {activeTab === "settings" && <FadeSlide k="settings"><SettingsTab user={user} transactions={transactions} userId={user.id} /></FadeSlide>}
+          {activeTab === "profile"  && <FadeSlide k="profile"><ProfileTab user={user} profile={profile} transactions={transactions} onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} /></FadeSlide>}
         </AnimatePresence>
       </div>
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} onFABPress={() => { setEditingTransaction(null); setIsModalOpen(true); }} />
       <AddTransactionModal open={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingTransaction(null); }} onAdd={handleAddTransaction} onUpdate={handleUpdateTransaction} userId={user.id} editingTransaction={editingTransaction} />
     </div>
+  );
+}
+
+function FadeSlide({ k, children }: { k: string; children: React.ReactNode }) {
+  return (
+    <motion.div key={k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+      {children}
+    </motion.div>
   );
 }
 

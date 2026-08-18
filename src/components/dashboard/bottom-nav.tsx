@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, BarChart2, Users, Brain, User, Plus, Target, Receipt, Settings } from "lucide-react";
+import { Home, BarChart2, Target, Receipt, Settings } from "lucide-react";
 import type { TabType } from "@/components/dashboard/dashboard-client";
 import { cn } from "@/lib/utils";
 
@@ -11,70 +11,61 @@ interface BottomNavProps {
   onFABPress: () => void;
 }
 
-// 3 left, FAB center, 3 right
 const LEFT_TABS = [
   { id: "home" as TabType, icon: Home, label: "Home" },
-  { id: "analytics" as TabType, icon: BarChart2, label: "Analitik" },
-  { id: "budget" as TabType, icon: Target, label: "Budget" },
+  { id: "analytics" as TabType, icon: BarChart2, label: "Transaksi" },
 ];
 const RIGHT_TABS = [
-  { id: "goals" as TabType, icon: Receipt, label: "Impian" },
-  { id: "bills" as TabType, icon: Users, label: "Tagihan" },
+  { id: "budget" as TabType, icon: Target, label: "Budget" },
   { id: "settings" as TabType, icon: Settings, label: "Lainnya" },
 ];
 
 export default function BottomNav({ activeTab, onTabChange, onFABPress }: BottomNavProps) {
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40 trek-nav">
-      <div className="flex items-end justify-around px-1"
-        style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
+    <nav className="bottom-nav">
+      {LEFT_TABS.map(tab => (
+        <NavItem key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
+      ))}
 
-        {LEFT_TABS.map(tab => (
-          <NavBtn key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
-        ))}
-
-        {/* FAB center */}
-        <div className="flex flex-col items-center pb-1 flex-shrink-0">
-          <motion.button
-            whileTap={{ scale: 0.86 }}
-            whileHover={{ scale: 1.06 }}
-            onClick={onFABPress}
-            className="w-13 h-13 rounded-full bg-indigo-600 flex items-center justify-center -mt-6 border-[3px] border-background"
-            style={{
-              width: 52, height: 52,
-              boxShadow: "0 8px 24px rgba(99,102,241,0.5), 0 2px 8px rgba(0,0,0,0.15)"
-            }}
-          >
-            <Plus className="w-5 h-5 text-white" />
-          </motion.button>
-          <span className="text-[9px] text-muted-foreground mt-0.5 font-medium">Tambah</span>
-        </div>
-
-        {RIGHT_TABS.map(tab => (
-          <NavBtn key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
-        ))}
+      {/* FAB */}
+      <div className="flex flex-col items-center">
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={onFABPress}
+          className="fab"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </motion.button>
+        <span className="text-[9px] font-semibold mt-1" style={{ color: "var(--text-tertiary)" }}>Tambah</span>
       </div>
-    </div>
+
+      {RIGHT_TABS.map(tab => (
+        <NavItem key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
+      ))}
+    </nav>
   );
 }
 
-function NavBtn({ tab, isActive, onPress }: {
+function NavItem({ tab, isActive, onPress }: {
   tab: { id: TabType; icon: React.ElementType; label: string };
   isActive: boolean;
   onPress: () => void;
 }) {
   return (
-    <button onClick={onPress} className="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1 relative min-w-0">
+    <button className="nav-item" onClick={onPress}>
       {isActive && (
-        <motion.div layoutId="nav-active"
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-indigo-500" />
+        <motion.div layoutId="nav-indicator" className="nav-item-active-dot" />
       )}
-      <tab.icon className={cn("w-4 h-4 transition-colors duration-150",
-        isActive ? "text-indigo-500" : "text-muted-foreground"
-      )} />
-      <span className={cn("text-[8px] font-semibold transition-colors duration-150 truncate",
-        isActive ? "text-indigo-500" : "text-muted-foreground"
-      )}>{tab.label}</span>
+      <tab.icon
+        className="w-5 h-5 transition-colors duration-150"
+        style={{ color: isActive ? "var(--accent-blue)" : "var(--text-tertiary)" }}
+      />
+      <span className="nav-item-label"
+        style={{ color: isActive ? "var(--accent-blue)" : "var(--text-tertiary)" }}>
+        {tab.label}
+      </span>
     </button>
   );
 }
