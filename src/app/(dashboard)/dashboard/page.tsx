@@ -11,21 +11,15 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  // Fetch transactions
-  const { data: transactions, error } = await supabase
+  const { data: transactions } = await supabase
     .from("transactions")
     .select("*")
     .eq("user_id", user.id)
     .order("date", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching transactions:", error);
-  }
-
-  // Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, full_name, created_at, email, avatar_url")
     .eq("id", user.id)
     .single();
 

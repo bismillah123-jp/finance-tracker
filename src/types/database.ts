@@ -6,15 +6,15 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   category: string;
-  description: string;
+  description: string | null;
   date: string;
   created_at: string;
 }
 
 export interface Profile {
   id: string;
-  email: string;
   full_name: string | null;
+  email: string | null;
   avatar_url: string | null;
   created_at: string;
 }
