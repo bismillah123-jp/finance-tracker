@@ -18,8 +18,7 @@ import AITab from "@/components/dashboard/tabs/ai-tab";
 import AddTransactionModal from "@/components/dashboard/add-transaction-modal";
 import BottomNav from "@/components/dashboard/bottom-nav";
 import NotificationPanel from "@/components/dashboard/notification-panel";
-import { Plus, Bell, Sun, Moon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, Sun, Moon } from "lucide-react";
 
 interface DashboardClientProps {
   user: User;
@@ -41,14 +40,15 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
 
-  const totalBalance = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0) -
+  const totalBalance =
+    transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0) -
     transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const cm = new Date().getMonth();
+  const cy = new Date().getFullYear();
   const monthlyTxs = transactions.filter((t) => {
     const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    return d.getMonth() === cm && d.getFullYear() === cy;
   });
   const totalIncome = monthlyTxs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpense = monthlyTxs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -57,12 +57,7 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
     setTransactions((prev) => [tx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsModalOpen(false);
     setEditingTransaction(null);
-    addNotification({
-      type: "success",
-      icon: tx.type === "income" ? "💰" : "💸",
-      title: `${tx.type === "income" ? "Pemasukan" : "Pengeluaran"} Dicatat!`,
-      body: `${tx.category} — Rp ${tx.amount.toLocaleString("id-ID")}`,
-    });
+    addNotification({ type: "success", icon: tx.type === "income" ? "💰" : "💸", title: `${tx.type === "income" ? "Pemasukan" : "Pengeluaran"} Dicatat!`, body: `${tx.category} — Rp ${tx.amount.toLocaleString("id-ID")}` });
     toast({ title: "✅ Transaksi ditambahkan!" });
   }, [toast, addNotification]);
 
@@ -98,30 +93,27 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   const displayName = profile?.full_name || user.email?.split("@")[0] || "User";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col w-full max-w-lg mx-auto relative">
-      {/* Top bar — always visible */}
+    /* FIX: app-shell class for desktop border; max-w-lg centered */
+    <div className="min-h-screen bg-background flex flex-col w-full max-w-lg mx-auto relative app-shell">
+
+      {/* Sticky top header */}
       <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-30 glass border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center neon-indigo">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center neon-indigo flex-shrink-0">
             <span className="text-sm font-bold text-white">F</span>
           </div>
           <span className="font-bold text-sm text-foreground">FinTrack</span>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Theme toggle */}
+        <div className="flex items-center gap-1.5">
           <motion.button whileTap={{ scale: 0.88 }} onClick={toggleTheme}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
-            {theme === "dark"
-              ? <Sun className="w-4 h-4 text-yellow-400" />
-              : <Moon className="w-4 h-4 text-indigo-400" />
-            }
+            {theme === "dark" ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
           </motion.button>
-          {/* Notification bell */}
           <motion.button whileTap={{ scale: 0.88 }} onClick={() => setShowNotif(!showNotif)}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors relative">
             <Bell className="w-4 h-4 text-muted-foreground" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold leading-none">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -132,13 +124,12 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
       {/* Notification panel */}
       <NotificationPanel isOpen={showNotif} onClose={() => setShowNotif(false)} />
 
-      {/* Tab content */}
-      <div className="flex-1 pt-14 pb-24 overflow-y-auto overflow-x-hidden scrollbar-hide">
+      {/* Tab content — FIX: pt-14 for header, pb-28 for bottom nav + FAB */}
+      <div className="flex-1 pt-14 pb-28 overflow-y-auto overflow-x-hidden scrollbar-hide">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             <motion.div key="home" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
-              <HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense}
-                transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} />
+              <HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} />
             </motion.div>
           )}
           {activeTab === "analytics" && (
@@ -163,8 +154,7 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
           )}
           {activeTab === "profile" && (
             <motion.div key="profile" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
-              <ProfileTab user={user} profile={profile} transactions={transactions}
-                onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} />
+              <ProfileTab user={user} profile={profile} transactions={transactions} onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} />
             </motion.div>
           )}
         </AnimatePresence>

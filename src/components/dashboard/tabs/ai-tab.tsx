@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Lightbulb, Brain } from "lucide-react";
+import { motion } from "framer-motion";
+import { Sparkles, RefreshCw, Brain, CheckCircle, AlertTriangle, Info, X } from "lucide-react";
 import type { Transaction } from "@/types/database";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -14,10 +14,38 @@ interface AITabProps {
 
 interface AIInsight {
   type: "good" | "warning" | "tip" | "info";
+  icon: string;
   title: string;
   body: string;
-  icon: string;
 }
+
+// FIX: all text uses text-foreground/text-muted-foreground, no hardcoded text-white
+const insightStyles = {
+  good: {
+    border: "border-emerald-500/30",
+    bg: "bg-emerald-500/10",
+    titleColor: "text-foreground",
+    iconBg: "bg-emerald-500/20",
+  },
+  warning: {
+    border: "border-rose-500/30",
+    bg: "bg-rose-500/10",
+    titleColor: "text-foreground",
+    iconBg: "bg-rose-500/20",
+  },
+  tip: {
+    border: "border-indigo-500/30",
+    bg: "bg-indigo-500/10",
+    titleColor: "text-foreground",
+    iconBg: "bg-indigo-500/20",
+  },
+  info: {
+    border: "border-blue-500/30",
+    bg: "bg-blue-500/10",
+    titleColor: "text-foreground",
+    iconBg: "bg-blue-500/20",
+  },
+};
 
 export default function AITab({ transactions, displayName }: AITabProps) {
   const [loading, setLoading] = useState(false);
@@ -25,120 +53,72 @@ export default function AITab({ transactions, displayName }: AITabProps) {
   const [score, setScore] = useState<number | null>(null);
   const [generated, setGenerated] = useState(false);
 
-  async function generateInsights() {
+  function generateInsights() {
     setLoading(true);
     try {
       const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const monthlyTxs = transactions.filter((t) => {
+      const cm = now.getMonth(), cy = now.getFullYear();
+      const mTxs = transactions.filter((t) => {
         const d = new Date(t.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        return d.getMonth() === cm && d.getFullYear() === cy;
       });
 
-      const totalIncome = monthlyTxs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-      const totalExpense = monthlyTxs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-      const allTimeBalance = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0) -
+      const inc = mTxs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+      const exp = mTxs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+      const allBal = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0) -
         transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
-      const catExpense: Record<string, number> = {};
-      monthlyTxs.filter((t) => t.type === "expense").forEach((t) => {
-        catExpense[t.category] = (catExpense[t.category] || 0) + t.amount;
+      const catExp: Record<string, number> = {};
+      mTxs.filter((t) => t.type === "expense").forEach((t) => {
+        catExp[t.category] = (catExp[t.category] || 0) + t.amount;
       });
+      const topCat = Object.entries(catExp).sort((a, b) => b[1] - a[1])[0];
+      const savRate = inc > 0 ? ((inc - exp) / inc) * 100 : 0;
 
-      const topExpCat = Object.entries(catExpense).sort((a, b) => b[1] - a[1])[0];
-      const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
-      const txCount = monthlyTxs.length;
-
-      // Calculate health score
-      let healthScore = 50;
-      if (savingsRate >= 20) healthScore += 20;
-      else if (savingsRate >= 10) healthScore += 10;
-      else if (savingsRate < 0) healthScore -= 20;
-      if (totalIncome > totalExpense) healthScore += 10;
-      if (txCount >= 5) healthScore += 10;
-      if (allTimeBalance > 0) healthScore += 10;
-      healthScore = Math.max(0, Math.min(100, healthScore));
-      setScore(healthScore);
+      let health = 50;
+      if (savRate >= 20) health += 20;
+      else if (savRate >= 10) health += 10;
+      else if (savRate < 0) health -= 20;
+      if (inc > exp) health += 10;
+      if (mTxs.length >= 5) health += 10;
+      if (allBal > 0) health += 10;
+      health = Math.max(0, Math.min(100, health));
+      setScore(health);
 
       const result: AIInsight[] = [];
 
-      // Savings rate insight
-      if (savingsRate >= 20) {
-        result.push({
-          type: "good",
-          icon: "🎉",
-          title: "Tingkat Tabungan Bagus!",
-          body: `Kamu berhasil menabung ${savingsRate.toFixed(1)}% dari pemasukan bulan ini. Teruskan! Target ideal adalah 20-30%.`
-        });
-      } else if (savingsRate > 0) {
-        result.push({
-          type: "warning",
-          icon: "⚠️",
-          title: "Tabungan Masih Rendah",
-          body: `Tingkat tabungan kamu ${savingsRate.toFixed(1)}% — idealnya minimal 20%. Coba kurangi pengeluaran ${topExpCat ? `di kategori ${topExpCat[0]}` : "tidak penting"}.`
-        });
-      } else if (savingsRate < 0 && totalIncome > 0) {
-        result.push({
-          type: "warning",
-          icon: "🚨",
-          title: "Pengeluaran Melebihi Pemasukan!",
-          body: `Bulan ini kamu boros ${formatCurrency(Math.abs(totalExpense - totalIncome))} di atas pemasukan. Ini tidak sustainable — segera kurangi pengeluaran.`
-        });
+      if (savRate >= 20) {
+        result.push({ type: "good", icon: "🎉", title: "Tingkat Tabungan Bagus!", body: `Kamu menabung ${savRate.toFixed(1)}% dari pemasukan. Target ideal 20-30% — kamu udah di jalur yang benar!` });
+      } else if (savRate > 0) {
+        result.push({ type: "warning", icon: "⚠️", title: "Tabungan Masih Rendah", body: `Tabungan kamu ${savRate.toFixed(1)}%. Minimal target 20%. Coba kurangi pengeluaran${topCat ? ` di ${topCat[0]}` : ""}.` });
+      } else if (savRate < 0 && inc > 0) {
+        result.push({ type: "warning", icon: "🚨", title: "Pengeluaran Melebihi Pemasukan!", body: `Boros ${formatCurrency(Math.abs(exp - inc))} di atas pemasukan bulan ini. Segera evaluasi!` });
       }
 
-      // Top expense category
-      if (topExpCat) {
-        const pct = totalExpense > 0 ? (topExpCat[1] / totalExpense) * 100 : 0;
-        result.push({
-          type: pct > 40 ? "warning" : "info",
-          icon: "📊",
-          title: `Pengeluaran Terbesar: ${topExpCat[0]}`,
-          body: `${topExpCat[0]} menyumbang ${pct.toFixed(0)}% dari total pengeluaran bulan ini (${formatCurrency(topExpCat[1])}). ${pct > 40 ? "Pertimbangkan untuk menghemat di kategori ini." : "Distribusi ini cukup wajar."}`
-        });
+      if (topCat) {
+        const pct = exp > 0 ? (topCat[1] / exp) * 100 : 0;
+        result.push({ type: pct > 40 ? "warning" : "info", icon: "📊", title: `Pengeluaran Terbesar: ${topCat[0]}`, body: `${topCat[0]} = ${pct.toFixed(0)}% dari total pengeluaran (${formatCurrency(topCat[1])}). ${pct > 40 ? "Pertimbangkan hemat di sini." : "Distribusi cukup wajar."}` });
       }
 
-      // Balance insight
-      if (allTimeBalance > 0) {
-        result.push({
-          type: "good",
-          icon: "💰",
-          title: "Saldo Positif",
-          body: `Total saldo kamu ${formatCurrency(allTimeBalance)} — bagus! Pertimbangkan investasikan 10-20% untuk tumbuh lebih cepat.`
-        });
-      } else if (allTimeBalance < 0) {
-        result.push({
-          type: "warning",
-          icon: "🔴",
-          title: "Total Saldo Negatif",
-          body: `Total saldo kamu minus ${formatCurrency(Math.abs(allTimeBalance))}. Fokus tingkatkan pemasukan atau kurangi pengeluaran rutin.`
-        });
+      if (allBal > 0) {
+        result.push({ type: "good", icon: "💰", title: "Saldo Positif", body: `Total saldo ${formatCurrency(allBal)}. Pertimbangkan investasikan 10-20% untuk tumbuh lebih cepat.` });
+      } else if (allBal < 0) {
+        result.push({ type: "warning", icon: "🔴", title: "Total Saldo Negatif", body: `Saldo minus ${formatCurrency(Math.abs(allBal))}. Fokus tingkatkan pemasukan atau kurangi pengeluaran rutin.` });
       }
 
-      // Transaction frequency
-      if (txCount < 3) {
-        result.push({
-          type: "tip",
-          icon: "💡",
-          title: "Catat Lebih Rutin",
-          body: "Kamu baru mencatat " + txCount + " transaksi bulan ini. Semakin lengkap catatanmu, semakin akurat insight yang bisa gue berikan!"
-        });
+      if (mTxs.length < 3) {
+        result.push({ type: "tip", icon: "📝", title: "Catat Lebih Rutin", body: `Baru ${mTxs.length} transaksi bulan ini. Makin lengkap catatan, makin akurat analisisnya!` });
       }
 
-      // Generic tip
-      const tips = [
-        { icon: "🎯", title: "Aturan 50/30/20", body: "50% kebutuhan pokok, 30% keinginan, 20% tabungan. Coba terapkan bulan depan!" },
-        { icon: "📅", title: "Budget Bulanan", body: "Set budget per kategori di awal bulan. Ini cara paling efektif menghindari boros." },
-        { icon: "🔄", title: "Review Mingguan", body: "Luangkan 5 menit tiap minggu untuk review pengeluaran. Catch masalah sebelum membesar." },
-        { icon: "💳", title: "Bayar Cash/Transfer", body: "Hindari hutang konsumtif. Kalau harus beli, pastikan uangnya udah ada." },
+      const tips: AIInsight[] = [
+        { type: "tip", icon: "🎯", title: "Aturan 50/30/20", body: "50% kebutuhan, 30% keinginan, 20% tabungan. Coba terapkan bulan depan!" },
+        { type: "tip", icon: "📅", title: "Budget Bulanan", body: "Set budget per kategori di awal bulan — cara paling efektif hindari boros." },
+        { type: "tip", icon: "🔄", title: "Review Mingguan", body: "5 menit tiap minggu review pengeluaran. Catch masalah sebelum membesar." },
       ];
-      result.push({ type: "tip", ...tips[Math.floor(Math.random() * tips.length)] });
+      result.push(tips[Math.floor(Math.random() * tips.length)]);
 
       setInsights(result);
       setGenerated(true);
-    } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -152,21 +132,15 @@ export default function AITab({ transactions, displayName }: AITabProps) {
     ? score >= 70 ? "Sehat 🟢" : score >= 40 ? "Perlu Perhatian 🟡" : "Kritis 🔴"
     : "";
 
-  const insightColors = {
-    good: "border-emerald-500/20 bg-emerald-500/5",
-    warning: "border-rose-500/20 bg-rose-500/5",
-    tip: "border-indigo-500/20 bg-indigo-500/5",
-    info: "border-blue-500/20 bg-blue-500/5",
-  };
-
   return (
-    <div className="min-h-screen px-4 pt-12 pb-4">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="px-4 pt-4 pb-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 flex items-center justify-center">
           <Brain className="w-5 h-5 text-indigo-400" />
         </div>
         <div>
-          <h1 className="text-white text-xl font-bold">AI Insights</h1>
+          <h1 className="text-foreground text-xl font-bold">AI Insights</h1>
           <p className="text-muted-foreground text-xs">Analisis keuangan personal kamu</p>
         </div>
       </div>
@@ -174,12 +148,11 @@ export default function AITab({ transactions, displayName }: AITabProps) {
       {/* Health Score */}
       {score !== null && (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="glass rounded-3xl p-6 border border-indigo-500/20 bg-gradient-to-br from-indigo-600/10 to-purple-600/5 mb-5 text-center">
+          className="glass rounded-3xl p-6 border border-indigo-500/20 mb-5 text-center">
           <p className="text-muted-foreground text-sm mb-2">Skor Kesehatan Keuangan</p>
           <p className={cn("text-6xl font-black tabular-nums mb-1", scoreColor)}>{score}</p>
-          <p className="text-sm font-medium text-white">{scoreLabel}</p>
-          {/* Score bar */}
-          <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
+          <p className="text-sm font-medium text-foreground">{scoreLabel}</p>
+          <div className="mt-4 h-2 bg-secondary rounded-full overflow-hidden">
             <motion.div initial={{ width: 0 }} animate={{ width: `${score}%` }}
               transition={{ delay: 0.3, duration: 0.8 }}
               className={cn("h-full rounded-full", score >= 70 ? "bg-emerald-500" : score >= 40 ? "bg-yellow-500" : "bg-rose-500")} />
@@ -187,54 +160,54 @@ export default function AITab({ transactions, displayName }: AITabProps) {
         </motion.div>
       )}
 
-      {/* Generate button */}
+      {/* Generate / Refresh button */}
       {!generated ? (
         <motion.button whileTap={{ scale: 0.97 }} onClick={generateInsights} disabled={loading}
-          className="w-full glass rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-600/15 to-purple-600/10 flex items-center justify-center gap-3 mb-5 disabled:opacity-60">
+          className="w-full glass rounded-2xl p-5 border border-indigo-500/30 flex items-center justify-center gap-3 mb-5 disabled:opacity-60 hover:border-indigo-500/50 transition-colors">
           {loading ? (
-            <>
-              <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
-              <span className="text-white font-medium">Menganalisis keuanganmu...</span>
-            </>
+            <><RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" /><span className="text-foreground font-medium">Menganalisis...</span></>
           ) : (
-            <>
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              <span className="text-white font-medium">Analisis Keuanganku</span>
-            </>
+            <><Sparkles className="w-5 h-5 text-indigo-400" /><span className="text-foreground font-medium">Analisis Keuanganku</span></>
           )}
         </motion.button>
       ) : (
         <button onClick={() => { setGenerated(false); setScore(null); setInsights([]); generateInsights(); }}
-          className="w-full flex items-center justify-center gap-2 py-2.5 mb-5 text-sm text-muted-foreground hover:text-white transition-colors">
+          className="w-full flex items-center justify-center gap-2 py-2.5 mb-5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh Analisis
         </button>
       )}
 
-      {/* Insights */}
-      <AnimatePresence>
-        {insights.map((insight, i) => (
-          <motion.div key={i}
-            initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className={cn("glass rounded-2xl p-4 border mb-3", insightColors[insight.type])}>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl flex-shrink-0">{insight.icon}</span>
-              <div>
-                <p className="text-white font-semibold text-sm mb-1">{insight.title}</p>
-                <p className="text-muted-foreground text-xs leading-relaxed">{insight.body}</p>
+      {/* Insights list */}
+      <div className="space-y-3">
+        {insights.map((insight, i) => {
+          const style = insightStyles[insight.type];
+          return (
+            <motion.div key={i}
+              initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className={cn("rounded-2xl p-4 border", style.border, style.bg)}>
+              <div className="flex items-start gap-3">
+                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg", style.iconBg)}>
+                  {insight.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {/* FIX: text-foreground not text-white */}
+                  <p className={cn("text-sm font-semibold mb-1", style.titleColor)}>{insight.title}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{insight.body}</p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Empty state */}
       {!generated && !loading && (
         <div className="text-center py-8">
           <p className="text-5xl mb-4">🤖</p>
-          <p className="text-white font-medium mb-1">AI Siap Menganalisis!</p>
-          <p className="text-muted-foreground text-sm">Tekan tombol di atas untuk mendapatkan insight personal berdasarkan transaksimu.</p>
+          <p className="text-foreground font-medium mb-1">AI Siap Menganalisis!</p>
+          <p className="text-muted-foreground text-sm">Tekan tombol di atas untuk insight personal.</p>
         </div>
       )}
     </div>

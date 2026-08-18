@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import type { Transaction } from "@/types/database";
@@ -22,22 +23,21 @@ const CATEGORY_EMOJI: Record<string, string> = {
   Hiburan: "🎮", Pendidikan: "📚", Lainnya: "📝",
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Gaji: "bg-emerald-500/20 text-emerald-400",
-  Freelance: "bg-blue-500/20 text-blue-400",
-  Makanan: "bg-orange-500/20 text-orange-400",
-  Transportasi: "bg-teal-500/20 text-teal-400",
-  Belanja: "bg-purple-500/20 text-purple-400",
-  Tagihan: "bg-red-500/20 text-red-400",
-  Hiburan: "bg-pink-500/20 text-pink-400",
-  Investasi: "bg-indigo-500/20 text-indigo-400",
-  default: "bg-secondary text-muted-foreground",
-};
+function getDateLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Hari Ini";
+  if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
+  return date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+}
 
-export default function HomeTab({ displayName, totalBalance, totalIncome, totalExpense, transactions, onEdit, onDelete }: HomeTabProps) {
-  const recent = transactions.slice(0, 10);
-
-  // Group by date
+export default function HomeTab({
+  displayName, totalBalance, totalIncome, totalExpense,
+  transactions, onEdit, onDelete,
+}: HomeTabProps) {
+  const recent = transactions.slice(0, 15);
   const grouped: Record<string, Transaction[]> = {};
   recent.forEach((t) => {
     const label = getDateLabel(t.date);
@@ -47,11 +47,14 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
 
   return (
     <div className="min-h-screen">
-      {/* Header gradient */}
-      <div className="relative bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 pt-12 pb-24 px-5">
+      {/* Header — smooth gradient fade to background */}
+      <div className="relative pt-14 pb-24 px-5 overflow-hidden"
+        style={{
+          background: "linear-gradient(to bottom, hsl(239 60% 14%) 0%, hsl(239 60% 10%) 40%, transparent 100%)"
+        }}>
         {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl" />
+        <div className="absolute -top-8 -right-8 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-20 -left-8 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-8 relative z-10">
@@ -59,12 +62,9 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
             <p className="text-indigo-200 text-sm">Selamat datang 👋</p>
             <h1 className="text-white text-xl font-bold">{displayName}</h1>
           </div>
-          <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
-            <Bell className="w-5 h-5 text-white" />
-          </button>
         </div>
 
-        {/* Balance card */}
+        {/* Balance */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -72,12 +72,14 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
           className="text-center relative z-10 mb-2"
         >
           <p className="text-indigo-200 text-sm mb-1">Total Saldo</p>
-          <p className="text-white text-4xl font-bold tabular-nums">{formatCurrency(totalBalance)}</p>
+          <p className="text-white text-4xl font-bold tabular-nums drop-shadow-lg">
+            {formatCurrency(totalBalance)}
+          </p>
         </motion.div>
       </div>
 
-      {/* Income / Expense cards — overlapping header */}
-      <div className="px-4 -mt-12 relative z-20 mb-6">
+      {/* Income / Expense cards overlapping header */}
+      <div className="px-4 -mt-14 relative z-20 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,7 +112,7 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
       {/* Recent Transactions */}
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white font-semibold">Transaksi Terbaru</h2>
+          <h2 className="text-foreground font-semibold">Transaksi Terbaru</h2>
           <span className="text-xs text-indigo-400">{transactions.length} total</span>
         </div>
 
@@ -131,18 +133,23 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
                       key={tx.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
+                      transition={{ delay: i * 0.04 }}
                       className="glass rounded-2xl p-3.5 border border-border flex items-center gap-3 group"
                     >
                       <div className={cn(
                         "w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0",
-                        CATEGORY_COLORS[tx.category] || CATEGORY_COLORS.default
+                        tx.type === "income" ? "bg-emerald-500/15" : "bg-rose-500/15"
                       )}>
                         {CATEGORY_EMOJI[tx.category] || "📝"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{tx.description || tx.category}</p>
-                        <p className="text-xs text-muted-foreground">{tx.category} · {formatShortDate(tx.date)}</p>
+                        {/* FIX: text-foreground instead of text-white */}
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {tx.description || tx.category}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {tx.category} · {formatShortDate(tx.date)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="text-right">
@@ -151,7 +158,10 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
                               ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
                               : <ArrowDownLeft className="w-3.5 h-3.5 text-rose-400" />
                             }
-                            <p className={cn("text-sm font-semibold tabular-nums", tx.type === "income" ? "text-emerald-400" : "text-rose-400")}>
+                            <p className={cn(
+                              "text-sm font-semibold tabular-nums",
+                              tx.type === "income" ? "text-emerald-400" : "text-rose-400"
+                            )}>
                               {formatCurrency(tx.amount)}
                             </p>
                           </div>
@@ -171,15 +181,4 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
       </div>
     </div>
   );
-}
-
-function getDateLabel(dateStr: string): string {
-  const date = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) return "Hari Ini";
-  if (date.toDateString() === yesterday.toDateString()) return "Kemarin";
-  return date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
 }

@@ -1,10 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, CheckCheck, Trash2, TrendingUp, TrendingDown, AlertTriangle, Info, CheckCircle } from "lucide-react";
+import { Bell, X, CheckCheck, Trash2, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { useNotifications, type AppNotification } from "@/contexts/notification-context";
 import { cn } from "@/lib/utils";
-import { formatShortDate } from "@/lib/utils";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -23,9 +22,9 @@ function NotifItem({ notif, onRead }: { notif: AppNotification; onRead: (id: str
   const Icon = cfg.icon;
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
       onClick={() => onRead(notif.id)}
       className={cn(
         "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
@@ -34,14 +33,17 @@ function NotifItem({ notif, onRead }: { notif: AppNotification; onRead: (id: str
       )}
     >
       <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", cfg.bg)}>
-        {notif.icon
-          ? <span className="text-base">{notif.icon}</span>
-          : <Icon className={cn("w-4 h-4", cfg.color)} />
-        }
+        {notif.icon ? (
+          <span className="text-base leading-none">{notif.icon}</span>
+        ) : (
+          <Icon className={cn("w-4 h-4", cfg.color)} />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={cn("text-xs font-semibold", notif.read ? "text-muted-foreground" : "text-white")}>{notif.title}</p>
+          <p className={cn("text-xs font-semibold truncate", notif.read ? "text-muted-foreground" : "text-foreground")}>
+            {notif.title}
+          </p>
           {!notif.read && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />}
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{notif.body}</p>
@@ -63,48 +65,56 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
-          {/* Panel */}
+          {/* Panel — FIX: right-4 + max-w to prevent overflow on small screens */}
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-sm z-50 glass rounded-2xl border border-border shadow-2xl overflow-hidden"
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 450, damping: 30 }}
+            className="fixed top-14 right-4 left-4 max-w-sm mx-auto z-50 glass rounded-2xl border border-border shadow-2xl overflow-hidden"
+            style={{ maxWidth: "min(360px, calc(100vw - 2rem))" }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-indigo-400" />
-                <span className="text-sm font-semibold text-white">Notifikasi</span>
+                <span className="text-sm font-semibold text-foreground">Notifikasi</span>
                 {unreadCount > 0 && (
-                  <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-bold">{unreadCount}</span>
+                  <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-bold">
+                    {unreadCount}
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-white">
+                  <button onClick={markAllRead}
+                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                    title="Tandai semua dibaca">
                     <CheckCheck className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {notifications.length > 0 && (
-                  <button onClick={clearAll} className="p-1.5 rounded-lg hover:bg-rose-600/20 transition-colors text-muted-foreground hover:text-rose-400">
+                  <button onClick={clearAll}
+                    className="p-1.5 rounded-lg hover:bg-rose-600/20 transition-colors text-muted-foreground hover:text-rose-400"
+                    title="Hapus semua">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-white">
+                <button onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
             {/* List */}
-            <div className="max-h-80 overflow-y-auto scrollbar-hide p-3 space-y-2">
+            <div className="max-h-72 overflow-y-auto scrollbar-hide p-3 space-y-2">
               {notifications.length === 0 ? (
                 <div className="text-center py-8">
-                  <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
+                  <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-30" />
                   <p className="text-sm text-muted-foreground">Belum ada notifikasi</p>
                 </div>
               ) : (
