@@ -7,6 +7,8 @@ import type { Transaction, Profile } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/contexts/theme-context";
+import { NotificationProvider, useNotifications } from "@/contexts/notification-context";
 import HomeTab from "@/components/dashboard/tabs/home-tab";
 import AnalyticsTab from "@/components/dashboard/tabs/analytics-tab";
 import WalletTab from "@/components/dashboard/tabs/wallet-tab";
@@ -15,7 +17,9 @@ import DebtTab from "@/components/dashboard/tabs/debt-tab";
 import AITab from "@/components/dashboard/tabs/ai-tab";
 import AddTransactionModal from "@/components/dashboard/add-transaction-modal";
 import BottomNav from "@/components/dashboard/bottom-nav";
-import { Plus } from "lucide-react";
+import NotificationPanel from "@/components/dashboard/notification-panel";
+import { Plus, Bell, Sun, Moon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DashboardClientProps {
   user: User;
@@ -25,16 +29,17 @@ interface DashboardClientProps {
 
 export type TabType = "home" | "analytics" | "wallet" | "debt" | "ai" | "profile";
 
-const SHOW_FAB_TABS: TabType[] = ["home", "wallet"];
-
-export default function DashboardClient({ user, profile, initialTransactions }: DashboardClientProps) {
+function DashboardInner({ user, profile, initialTransactions }: DashboardClientProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
+  const { addNotification, unreadCount } = useNotifications();
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [activeTab, setActiveTab] = useState<TabType>("home");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
 
   const totalBalance = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0) -
     transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -52,8 +57,14 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
     setTransactions((prev) => [tx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsModalOpen(false);
     setEditingTransaction(null);
+    addNotification({
+      type: "success",
+      icon: tx.type === "income" ? "💰" : "💸",
+      title: `${tx.type === "income" ? "Pemasukan" : "Pengeluaran"} Dicatat!`,
+      body: `${tx.category} — Rp ${tx.amount.toLocaleString("id-ID")}`,
+    });
     toast({ title: "✅ Transaksi ditambahkan!" });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleUpdateTransaction = useCallback((tx: Transaction) => {
     setTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
@@ -67,8 +78,9 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
     const { error } = await supabase.from("transactions").delete().eq("id", id);
     if (error) { toast({ title: "Gagal menghapus", description: error.message, variant: "destructive" }); return; }
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    addNotification({ type: "info", icon: "🗑️", title: "Transaksi Dihapus", body: "Satu transaksi berhasil dihapus." });
     toast({ title: "🗑️ Transaksi dihapus!" });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleEdit = useCallback((tx: Transaction) => {
     setEditingTransaction(tx);
@@ -84,41 +96,73 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
   };
 
   const displayName = profile?.full_name || user.email?.split("@")[0] || "User";
-  const showFAB = SHOW_FAB_TABS.includes(activeTab);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative select-none">
-      {/* Tab Content */}
-      <div className="flex-1 pb-20 overflow-y-auto overflow-x-hidden scrollbar-hide">
+    <div className="min-h-screen bg-background flex flex-col w-full max-w-lg mx-auto relative">
+      {/* Top bar — always visible */}
+      <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-30 glass border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center neon-indigo">
+            <span className="text-sm font-bold text-white">F</span>
+          </div>
+          <span className="font-bold text-sm text-foreground">FinTrack</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          <motion.button whileTap={{ scale: 0.88 }} onClick={toggleTheme}
+            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
+            {theme === "dark"
+              ? <Sun className="w-4 h-4 text-yellow-400" />
+              : <Moon className="w-4 h-4 text-indigo-400" />
+            }
+          </motion.button>
+          {/* Notification bell */}
+          <motion.button whileTap={{ scale: 0.88 }} onClick={() => setShowNotif(!showNotif)}
+            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors relative">
+            <Bell className="w-4 h-4 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </motion.button>
+        </div>
+      </header>
+
+      {/* Notification panel */}
+      <NotificationPanel isOpen={showNotif} onClose={() => setShowNotif(false)} />
+
+      {/* Tab content */}
+      <div className="flex-1 pt-14 pb-24 overflow-y-auto overflow-x-hidden scrollbar-hide">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
-            <motion.div key="home" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="home" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense}
                 transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} />
             </motion.div>
           )}
           {activeTab === "analytics" && (
-            <motion.div key="analytics" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="analytics" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <AnalyticsTab transactions={transactions} />
             </motion.div>
           )}
           {activeTab === "wallet" && (
-            <motion.div key="wallet" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="wallet" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <WalletTab transactions={transactions} />
             </motion.div>
           )}
           {activeTab === "debt" && (
-            <motion.div key="debt" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="debt" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <DebtTab userId={user.id} />
             </motion.div>
           )}
           {activeTab === "ai" && (
-            <motion.div key="ai" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="ai" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <AITab transactions={transactions} displayName={displayName} />
             </motion.div>
           )}
           {activeTab === "profile" && (
-            <motion.div key="profile" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.18 }}>
+            <motion.div key="profile" initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 15 }} transition={{ duration: 0.15 }}>
               <ProfileTab user={user} profile={profile} transactions={transactions}
                 onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} />
             </motion.div>
@@ -126,28 +170,8 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
         </AnimatePresence>
       </div>
 
-      {/* FAB Add Button */}
-      <AnimatePresence>
-        {showFAB && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-20 right-4 z-50"
-          >
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              whileHover={{ scale: 1.08 }}
-              onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }}
-              className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-2xl neon-indigo"
-            >
-              <Plus className="w-6 h-6 text-white" />
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Nav */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Bottom Nav with FAB in center */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} onFABPress={() => { setEditingTransaction(null); setIsModalOpen(true); }} />
 
       {/* Modal */}
       <AddTransactionModal
@@ -159,5 +183,13 @@ export default function DashboardClient({ user, profile, initialTransactions }: 
         editingTransaction={editingTransaction}
       />
     </div>
+  );
+}
+
+export default function DashboardClient(props: DashboardClientProps) {
+  return (
+    <NotificationProvider>
+      <DashboardInner {...props} />
+    </NotificationProvider>
   );
 }
