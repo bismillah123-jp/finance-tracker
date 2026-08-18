@@ -16,29 +16,46 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("fintrack-theme") as Theme | null;
-    if (saved) {
-      setTheme(saved);
-      document.documentElement.setAttribute("data-theme", saved);
-    }
+    const initial = saved || "dark";
+    setTheme(initial);
+    applyTheme(initial);
+    setMounted(true);
   }, []);
+
+  function applyTheme(t: Theme) {
+    const root = document.documentElement;
+    root.setAttribute("data-theme", t);
+    if (t === "dark") {
+      root.classList.add("dark");
+      root.classList.remove("light");
+    } else {
+      root.classList.remove("dark");
+      root.classList.add("light");
+    }
+    // Force background color directly
+    document.body.style.backgroundColor = t === "dark" ? "#060d1a" : "#f0f4ff";
+    document.body.style.color = t === "dark" ? "#e8edf5" : "#0f172a";
+  }
 
   function toggleTheme() {
     setTheme((prev) => {
       const next = prev === "dark" ? "light" : "dark";
       localStorage.setItem("fintrack-theme", next);
-      document.documentElement.setAttribute("data-theme", next);
+      applyTheme(next);
       return next;
     });
   }
 
+  // Prevent flash of wrong theme
+  if (!mounted) return <div style={{ backgroundColor: "#060d1a", minHeight: "100vh" }}>{children}</div>;
+
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div data-theme={theme} className="min-h-screen">
-        {children}
-      </div>
+      {children}
     </ThemeContext.Provider>
   );
 }

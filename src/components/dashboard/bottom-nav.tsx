@@ -16,50 +16,87 @@ const LEFT_TABS = [
   { id: "analytics" as TabType, icon: BarChart2, label: "Analitik" },
 ];
 const RIGHT_TABS = [
-  { id: "debt" as TabType, icon: Users, label: "Hutang" },
+  { id: "ai" as TabType, icon: Brain, label: "AI" },
   { id: "profile" as TabType, icon: User, label: "Profil" },
 ];
 
 export default function BottomNav({ activeTab, onTabChange, onFABPress }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-40 glass border-t border-border">
-      <div className="flex items-center justify-around px-2 pb-safe" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+      <div
+        className="flex items-end justify-around px-2"
+        style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
+      >
         {/* Left tabs */}
         {LEFT_TABS.map((tab) => (
-          <NavButton key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
+          <NavButton
+            key={tab.id}
+            tab={tab}
+            isActive={activeTab === tab.id}
+            onPress={() => onTabChange(tab.id)}
+          />
         ))}
 
-        {/* FAB center */}
-        <div className="flex flex-col items-center justify-center pt-2 pb-1">
+        {/* FAB center — elevated above nav */}
+        <div className="flex flex-col items-center pb-1">
           <motion.button
             whileTap={{ scale: 0.88 }}
             whileHover={{ scale: 1.06 }}
             onClick={onFABPress}
-            className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg neon-indigo -mt-6 border-4 border-background"
+            className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-2xl neon-indigo -mt-7 border-[3px] border-background"
+            style={{ marginBottom: "2px" }}
           >
             <Plus className="w-6 h-6 text-white" />
           </motion.button>
-          <span className="text-[9px] text-muted-foreground mt-0.5">Tambah</span>
+          <span className="text-[9px] text-muted-foreground">Tambah</span>
         </div>
 
         {/* Right tabs */}
         {RIGHT_TABS.map((tab) => (
-          <NavButton key={tab.id} tab={tab} isActive={activeTab === tab.id} onPress={() => onTabChange(tab.id)} />
+          <NavButton
+            key={tab.id}
+            tab={tab}
+            isActive={activeTab === tab.id}
+            onPress={() => onTabChange(tab.id)}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function NavButton({ tab, isActive, onPress }: { tab: { id: TabType; icon: React.ElementType; label: string }; isActive: boolean; onPress: () => void }) {
+function NavButton({
+  tab,
+  isActive,
+  onPress,
+}: {
+  tab: { id: TabType; icon: React.ElementType; label: string };
+  isActive: boolean;
+  onPress: () => void;
+}) {
   return (
-    <button onClick={onPress} className="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1 relative min-w-0">
+    <button
+      onClick={onPress}
+      className="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1 relative min-w-0"
+    >
       {isActive && (
-        <motion.div layoutId="nav-indicator"
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-indigo-500" />
+        <motion.div
+          layoutId="nav-indicator"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-indigo-500"
+        />
       )}
-      <tab.icon className={cn("w-5 h-5 transition-colors", isActive ? "text-indigo-400" : "text-muted-foreground")} />
-      <span className={cn("text-[9px] font-medium truncate transition-colors", isActive ? "text-indigo-400" : "text-muted-foreground")}>
+      <tab.icon
+        className={cn(
+          "w-5 h-5 transition-colors",
+          isActive ? "text-indigo-400" : "text-muted-foreground"
+        )}
+      />
+      <span
+        className={cn(
+          "text-[9px] font-medium truncate transition-colors",
+          isActive ? "text-indigo-400" : "text-muted-foreground"
+        )}
+      >
         {tab.label}
       </span>
     </button>
