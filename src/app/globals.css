@@ -2,138 +2,277 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── DARK THEME (default) ── */
+/* ── TREK DARK THEME ── */
 :root,
 [data-theme="dark"],
 .dark {
-  --bg: #060d1a;
-  --bg-card: #0d1526;
-  --bg-secondary: #1a2340;
-  --border-color: #1e2d4a;
-  --text-primary: #e8edf5;
-  --text-muted: #6b7fa0;
+  --bg-base:        #111318;
+  --bg-card:        #1a1d24;
+  --bg-card-2:      #20242d;
+  --bg-secondary:   #252932;
+  --bg-hover:       #2e333e;
+  --border-subtle:  #2a2e38;
+  --border-default: #333845;
+  --text-primary:   #f0f2f7;
+  --text-secondary: #9ca3af;
+  --text-tertiary:  #6b7280;
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2);
+  --shadow-lg:      0 12px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-hero:    0 24px 64px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.3);
 
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
-  --card: 220 50% 9%;
-  --card-foreground: 213 31% 91%;
-  --popover: 220 50% 9%;
-  --popover-foreground: 213 31% 91%;
-  --primary: 239 84% 67%;
-  --primary-foreground: 224 71% 4%;
-  --secondary: 220 40% 14%;
-  --secondary-foreground: 213 31% 91%;
-  --muted: 220 40% 14%;
-  --muted-foreground: 215 20% 55%;
-  --accent: 220 40% 14%;
-  --accent-foreground: 213 31% 91%;
-  --destructive: 350 89% 60%;
-  --destructive-foreground: 213 31% 91%;
-  --border: 220 40% 18%;
-  --input: 220 40% 14%;
-  --ring: 239 84% 67%;
-  --radius: 0.875rem;
+  /* Tailwind CSS vars */
+  --background:        224 20% 8%;
+  --foreground:        220 20% 95%;
+  --card:              224 18% 12%;
+  --card-foreground:   220 20% 95%;
+  --popover:           224 18% 12%;
+  --popover-foreground:220 20% 95%;
+  --primary:           239 84% 67%;
+  --primary-foreground:0 0% 100%;
+  --secondary:         224 18% 16%;
+  --secondary-foreground:220 15% 80%;
+  --muted:             224 18% 16%;
+  --muted-foreground:  220 10% 50%;
+  --accent:            224 18% 20%;
+  --accent-foreground: 220 20% 95%;
+  --destructive:       0 72% 51%;
+  --destructive-foreground:0 0% 100%;
+  --border:            224 15% 20%;
+  --input:             224 18% 16%;
+  --ring:              239 84% 67%;
+  --radius:            1rem;
 }
 
-/* ── LIGHT THEME ── */
+/* ── TREK LIGHT THEME ── */
 [data-theme="light"],
 .light {
-  --bg: #f0f4ff;
-  --bg-card: #ffffff;
-  --bg-secondary: #e8edf8;
-  --border-color: #d1daf0;
-  --text-primary: #0f172a;
-  --text-muted: #64748b;
+  --bg-base:        #f6f7fb;
+  --bg-card:        #ffffff;
+  --bg-card-2:      #f9fafb;
+  --bg-secondary:   #f1f3f8;
+  --bg-hover:       #eef0f6;
+  --border-subtle:  #f0f2f7;
+  --border-default: #e4e7ef;
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary:  #9ca3af;
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg:      0 12px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-hero:    0 24px 64px rgba(0,0,0,0.12), 0 6px 20px rgba(0,0,0,0.07);
 
-  --background: 220 50% 96%;
-  --foreground: 220 50% 8%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 50% 8%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 50% 8%;
-  --primary: 239 84% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 40% 92%;
-  --secondary-foreground: 220 50% 15%;
-  --muted: 220 40% 92%;
-  --muted-foreground: 220 20% 45%;
-  --accent: 220 40% 92%;
-  --accent-foreground: 220 50% 8%;
-  --destructive: 350 89% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 220 40% 85%;
-  --input: 220 40% 92%;
-  --ring: 239 84% 60%;
+  --background:        220 30% 97%;
+  --foreground:        220 40% 8%;
+  --card:              0 0% 100%;
+  --card-foreground:   220 40% 8%;
+  --popover:           0 0% 100%;
+  --popover-foreground:220 40% 8%;
+  --primary:           239 84% 60%;
+  --primary-foreground:0 0% 100%;
+  --secondary:         220 20% 94%;
+  --secondary-foreground:220 30% 20%;
+  --muted:             220 20% 94%;
+  --muted-foreground:  220 15% 45%;
+  --accent:            220 20% 92%;
+  --accent-foreground: 220 40% 8%;
+  --destructive:       0 72% 51%;
+  --destructive-foreground:0 0% 100%;
+  --border:            220 20% 88%;
+  --input:             220 20% 94%;
+  --ring:              239 84% 60%;
 }
 
 @layer base {
-  * { box-sizing: border-box; border-color: hsl(var(--border)); }
+  * { box-sizing: border-box; }
 
   html {
-    background-color: var(--bg);
-    color: var(--text-primary);
+    background-color: var(--bg-base);
   }
 
   body {
     @apply bg-background text-foreground;
-    background-color: var(--bg);
+    background-color: var(--bg-base);
     color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
-  /* Prevent iOS auto-zoom on input focus */
+  /* Prevent iOS auto-zoom */
   input, textarea, select {
     font-size: 16px !important;
   }
 }
 
+/* ── TREK CARD SYSTEM ── */
+@layer components {
+  .trek-card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .trek-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .trek-card-dark {
+    background: var(--bg-card-2);
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-md);
+  }
+  .trek-hero {
+    border-radius: 24px;
+    box-shadow: var(--shadow-hero);
+    overflow: hidden;
+    position: relative;
+  }
+  .trek-badge {
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+  .trek-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .trek-amount {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .trek-amount-lg {
+    font-size: 2.75rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+  .trek-stat {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+  .trek-tab-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 4px;
+    display: flex;
+  }
+  .trek-tab {
+    flex: 1;
+    padding: 7px 14px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.18s ease;
+    text-align: center;
+  }
+  .trek-tab-active {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .trek-nav {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-default);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.06);
+  }
+  .trek-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 12px 0;
+  }
+  .trek-avatar {
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    box-shadow: var(--shadow-sm);
+  }
+  .trek-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .trek-pill-green  { background: rgba(16,185,129,0.12); color: #10b981; }
+  .trek-pill-red    { background: rgba(239,68,68,0.12);  color: #ef4444; }
+  .trek-pill-blue   { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  .trek-pill-indigo { background: rgba(99,102,241,0.12); color: #6366f1; }
+  .trek-progress-track {
+    height: 5px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .trek-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+}
+
+/* ── GLASS (legacy compat) ── */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
+  }
+  [data-theme="light"] .glass, .light .glass {
+    background: rgba(255,255,255,0.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  [data-theme="light"] .glass,
-  .light .glass {
-    background: rgba(255, 255, 255, 0.80);
+  [data-theme="dark"] .glass, .dark .glass {
+    background: rgba(26,29,36,0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
   }
-  .neon-emerald { box-shadow: 0 0 20px rgba(16,185,129,0.35); }
-  .neon-rose    { box-shadow: 0 0 20px rgba(244,63,94,0.35); }
-  .neon-indigo  { box-shadow: 0 0 24px rgba(99,102,241,0.5); }
 
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  /* Trek accent colors */
+  .text-trek-green  { color: #10b981; }
+  .text-trek-red    { color: #ef4444; }
+  .text-trek-blue   { color: #3b82f6; }
+  .text-trek-indigo { color: #6366f1; }
+
+  .neon-indigo { box-shadow: 0 4px 20px rgba(99,102,241,0.4); }
+  .neon-emerald{ box-shadow: 0 4px 20px rgba(16,185,129,0.3); }
+  .neon-rose   { box-shadow: 0 4px 20px rgba(239,68,68,0.3); }
+
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  .safe-bottom {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
+  .safe-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 
-  /* App wrapper — centers the mobile app on desktop */
-  .app-wrapper {
-    display: flex;
-    justify-content: center;
-    min-height: 100vh;
-    background-color: var(--bg);
-  }
-
-  /* Optional: show subtle desktop border on wide screens */
   @media (min-width: 640px) {
     .app-shell {
-      box-shadow: 0 0 40px rgba(99,102,241,0.15), 0 0 1px rgba(255,255,255,0.1);
-      border-left: 1px solid rgba(255,255,255,0.05);
-      border-right: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 0 0 0 1px var(--border-default), 0 32px 80px rgba(0,0,0,0.12);
     }
   }
 }

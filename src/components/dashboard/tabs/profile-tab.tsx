@@ -27,155 +27,142 @@ export default function ProfileTab({ user, profile, transactions, onLogout, isLo
   const [newName, setNewName] = useState(profile?.full_name || "");
   const [isSaving, setIsSaving] = useState(false);
 
-  const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const totalIncome = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = totalIncome - totalExpense;
   const initials = displayName.slice(0, 2).toUpperCase();
 
   async function handleSaveName() {
     if (!newName.trim()) return;
     setIsSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("profiles").update({ full_name: newName.trim() }).eq("id", user.id);
-    if (error) {
-      toast({ title: "Gagal menyimpan", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "✅ Nama diperbarui!" });
-      setIsEditingName(false);
-    }
+    const { error } = await createClient().from("profiles").update({ full_name: newName.trim() }).eq("id", user.id);
+    if (error) toast({ title: "Gagal menyimpan", description: error.message, variant: "destructive" });
+    else { toast({ title: "✅ Nama diperbarui!" }); setIsEditingName(false); }
     setIsSaving(false);
   }
 
   function handleExportCSV() {
-    const header = "id,type,amount,category,description,date";
-    const rows = transactions.map((t) =>
-      `${t.id},${t.type},${t.amount},${t.category},"${t.description || ""}",${t.date}`
-    );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
+    const csv = ["id,type,amount,category,description,date",
+      ...transactions.map(t => `${t.id},${t.type},${t.amount},${t.category},"${t.description || ""}",${t.date}`)
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `fintrack-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "📥 CSV berhasil diexport!" });
+    a.href = url; a.download = `fintrack-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast({ title: "📥 CSV exported!" });
   }
 
   return (
-    <div className="px-4 pt-4 pb-4">
-      <h1 className="text-foreground text-xl font-bold mb-5">Profil</h1>
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      <h1 className="text-foreground text-xl font-bold">Profil</h1>
 
-      {/* Avatar + name card */}
+      {/* TREK Profile card */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-3xl p-5 border border-indigo-500/20 bg-gradient-to-br from-indigo-600/10 to-purple-600/5 mb-4">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl font-bold text-indigo-300">{initials}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <input value={newName} onChange={(e) => setNewName(e.target.value)}
-                  className="flex-1 min-w-0 bg-secondary/50 border border-border rounded-lg px-2 py-1 text-sm text-foreground outline-none focus:ring-1 focus:ring-indigo-500"
-                  autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setIsEditingName(false); }} />
-                <button onClick={handleSaveName} disabled={isSaving}
-                  className="p-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 flex-shrink-0">
-                  <Check className="w-4 h-4" />
-                </button>
-                <button onClick={() => setIsEditingName(false)}
-                  className="p-1.5 rounded-lg bg-rose-600/20 text-rose-400 flex-shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <p className="text-foreground font-bold text-lg truncate">{displayName}</p>
-                <button onClick={() => setIsEditingName(true)}
-                  className="p-1 rounded-lg hover:bg-secondary text-muted-foreground flex-shrink-0">
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-            <p className="text-muted-foreground text-sm truncate">{user.email}</p>
-          </div>
+        className="trek-card overflow-hidden">
+        {/* Gradient banner */}
+        <div className="h-20 relative" style={{ background: "linear-gradient(135deg, #312e81, #6366f1, #818cf8)" }}>
+          <div className="absolute inset-0 opacity-20"
+            style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
         </div>
+        <div className="px-5 pb-5 -mt-8 relative">
+          {/* Avatar */}
+          <div className="w-16 h-16 rounded-2xl bg-indigo-600 border-4 flex items-center justify-center mb-3"
+            style={{ borderColor: "var(--bg-card)" }}>
+            <span className="text-xl font-black text-white">{initials}</span>
+          </div>
 
-        <div className="space-y-2 pt-3 border-t border-border/50">
-          <InfoRow icon={Mail} label="Email" value={user.email || "-"} />
-          <InfoRow icon={Calendar} label="Bergabung" value={formatDate(user.created_at || new Date().toISOString())} />
-          <InfoRow icon={User} label="User ID" value={user.id.slice(0, 8) + "..."} />
+          {/* Name editor */}
+          {isEditingName ? (
+            <div className="flex items-center gap-2 mb-1">
+              <input value={newName} onChange={e => setNewName(e.target.value)}
+                className="flex-1 min-w-0 bg-secondary border border-border rounded-xl px-3 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30"
+                autoFocus onKeyDown={e => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setIsEditingName(false); }} />
+              <button onClick={handleSaveName} disabled={isSaving} className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center"><Check className="w-4 h-4" /></button>
+              <button onClick={() => setIsEditingName(false)} className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center"><X className="w-4 h-4" /></button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-foreground font-bold text-lg">{displayName}</p>
+              <button onClick={() => setIsEditingName(true)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"><Edit2 className="w-3.5 h-3.5" /></button>
+            </div>
+          )}
+          <p className="text-muted-foreground text-sm">{user.email}</p>
+
+          {/* Info rows */}
+          <div className="mt-4 pt-4 border-t border-border space-y-2.5">
+            {[
+              { icon: Mail, label: "Email", value: user.email || "-" },
+              { icon: Calendar, label: "Bergabung", value: formatDate(user.created_at || new Date().toISOString()) },
+              { icon: User, label: "User ID", value: user.id.slice(0, 8) + "..." },
+            ].map(({ icon: Icon, label, value }) => (
+              <div key={label} className="flex items-center gap-3">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground text-xs w-16 flex-shrink-0">{label}</span>
+                <span className="text-foreground text-xs truncate">{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <StatCard icon={Wallet} label="Saldo" value={formatCurrency(balance)} color="indigo" />
-        <StatCard icon={TrendingUp} label="Masuk" value={formatCurrency(totalIncome)} color="emerald" />
-        <StatCard icon={TrendingDown} label="Keluar" value={formatCurrency(totalExpense)} color="rose" />
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { icon: Wallet, label: "Saldo", value: formatCurrency(balance), color: "text-indigo-500", bg: "bg-indigo-500/10" },
+          { icon: TrendingUp, label: "Masuk", value: formatCurrency(totalIncome), color: "text-emerald-500", bg: "bg-emerald-500/10" },
+          { icon: TrendingDown, label: "Keluar", value: formatCurrency(totalExpense), color: "text-rose-500", bg: "bg-rose-500/10" },
+        ].map(({ icon: Icon, label, value, color, bg }) => (
+          <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="trek-card p-3 text-center">
+            <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-1.5", bg)}>
+              <Icon className={cn("w-4 h-4", color)} />
+            </div>
+            <p className="trek-label">{label}</p>
+            <p className={cn("text-xs font-bold tabular-nums mt-0.5", color)}>{value}</p>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Preferences */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="glass rounded-2xl p-4 border border-border mb-4">
-        <p className="text-foreground text-sm font-semibold mb-3">Preferensi</p>
-        <div
-          onClick={toggleTheme}
-          className="flex items-center justify-between py-2 cursor-pointer hover:opacity-80 transition-opacity"
-        >
+      {/* Preferences & Actions */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="trek-card overflow-hidden divide-y divide-border/50">
+        <p className="trek-label px-4 pt-4 pb-3">PREFERENSI & AKSI</p>
+
+        {/* Theme toggle */}
+        <button onClick={toggleTheme} className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors">
           <div className="flex items-center gap-3">
-            {theme === "dark"
-              ? <Sun className="w-4 h-4 text-yellow-400" />
-              : <Moon className="w-4 h-4 text-indigo-400" />
-            }
-            <div>
-              <p className="text-sm text-foreground font-medium">
-                {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {theme === "dark" ? "Klik untuk mode terang" : "Klik untuk mode gelap"}
-              </p>
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            <div className="text-left">
+              <p className="text-sm font-medium text-foreground">{theme === "dark" ? "Mode Gelap" : "Mode Terang"}</p>
+              <p className="text-xs text-muted-foreground">Tap untuk ganti tema</p>
             </div>
           </div>
-          {/* Toggle switch */}
-          <div className={cn("w-11 h-6 rounded-full p-0.5 transition-colors", theme === "dark" ? "bg-indigo-600" : "bg-secondary")}>
+          <div className={cn("w-11 h-6 rounded-full p-0.5 transition-colors", theme === "dark" ? "bg-indigo-600" : "bg-secondary border border-border")}>
             <div className={cn("w-5 h-5 rounded-full bg-white shadow transition-transform", theme === "dark" ? "translate-x-5" : "translate-x-0")} />
           </div>
-        </div>
-      </motion.div>
+        </button>
 
-      {/* Actions */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-        className="glass rounded-2xl p-4 border border-border mb-4">
-        <p className="text-foreground text-sm font-semibold mb-3">Aksi</p>
-        <button onClick={handleExportCSV}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border hover:bg-secondary/50 transition-colors">
-          <Download className="w-4 h-4 text-indigo-400" />
+        {/* Export CSV */}
+        <button onClick={handleExportCSV} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors">
+          <Download className="w-4 h-4 text-indigo-500" />
           <div className="text-left">
-            <p className="text-sm text-foreground">Export Transaksi</p>
+            <p className="text-sm font-medium text-foreground">Export Transaksi</p>
             <p className="text-xs text-muted-foreground">{transactions.length} transaksi → CSV</p>
           </div>
         </button>
-      </motion.div>
 
-      {/* Stats detail */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="glass rounded-2xl p-4 border border-border mb-4">
-        <p className="text-foreground text-sm font-semibold mb-3">Statistik Akun</p>
-        <div className="space-y-2.5 text-sm">
+        {/* Stats detail */}
+        <div className="px-4 py-3 space-y-2">
+          <p className="trek-label mb-2">STATISTIK</p>
           {[
-            { label: "Total Transaksi", value: transactions.length.toString(), color: "text-foreground" },
-            { label: "Pemasukan", value: transactions.filter(t => t.type === "income").length.toString(), color: "text-emerald-400" },
-            { label: "Pengeluaran", value: transactions.filter(t => t.type === "expense").length.toString(), color: "text-rose-400" },
-            {
-              label: "Rata-rata/transaksi",
-              value: transactions.length > 0 ? formatCurrency((totalIncome + totalExpense) / transactions.length) : "Rp 0",
-              color: "text-foreground"
-            },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="flex justify-between items-center">
+            { label: "Total Transaksi", value: transactions.length.toString() },
+            { label: "Pemasukan", value: transactions.filter(t => t.type === "income").length.toString() },
+            { label: "Pengeluaran", value: transactions.filter(t => t.type === "expense").length.toString() },
+            { label: "Rata-rata", value: transactions.length > 0 ? formatCurrency((totalIncome + totalExpense) / transactions.length) : "Rp 0" },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex justify-between text-sm">
               <span className="text-muted-foreground">{label}</span>
-              <span className={cn("font-semibold tabular-nums", color)}>{value}</span>
+              <span className="text-foreground font-semibold tabular-nums">{value}</span>
             </div>
           ))}
         </div>
@@ -183,35 +170,11 @@ export default function ProfileTab({ user, profile, transactions, onLogout, isLo
 
       {/* Logout */}
       <motion.button whileTap={{ scale: 0.97 }} onClick={onLogout} disabled={isLoggingOut}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-rose-600/15 border border-rose-600/20 text-rose-400 hover:bg-rose-600/25 transition-colors font-medium">
+        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-rose-500 transition-colors"
+        style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
         <LogOut className="w-4 h-4" />
         {isLoggingOut ? "Keluar..." : "Keluar dari Akun"}
       </motion.button>
-    </div>
-  );
-}
-
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Icon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-      <span className="text-muted-foreground text-xs w-16 flex-shrink-0">{label}</span>
-      <span className="text-foreground text-xs truncate flex-1">{value}</span>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string; color: "indigo" | "emerald" | "rose" }) {
-  const colorMap = {
-    indigo: "bg-indigo-600/10 border-indigo-600/20 text-indigo-400",
-    emerald: "bg-emerald-600/10 border-emerald-600/20 text-emerald-400",
-    rose: "bg-rose-600/10 border-rose-600/20 text-rose-400",
-  };
-  return (
-    <div className={cn("glass rounded-2xl p-3 border text-center", colorMap[color])}>
-      <Icon className="w-4 h-4 mx-auto mb-1" />
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className="text-xs font-bold tabular-nums mt-0.5 leading-tight">{value}</p>
     </div>
   );
 }

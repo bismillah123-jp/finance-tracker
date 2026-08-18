@@ -18,9 +18,9 @@ interface HomeTabProps {
 }
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  Gaji: "💰", Freelance: "💻", Investasi: "📈", Bisnis: "🏢", Bonus: "🎁", Hadiah: "🎀",
-  Makanan: "🍜", Transportasi: "🚗", Belanja: "🛍️", Tagihan: "🧾", Kesehatan: "💊",
-  Hiburan: "🎮", Pendidikan: "📚", Lainnya: "📝",
+  Gaji:"💰",Freelance:"💻",Investasi:"📈",Bisnis:"🏢",Bonus:"🎁",Hadiah:"🎀",
+  Makanan:"🍜",Transportasi:"🚗",Belanja:"🛍️",Tagihan:"🧾",Kesehatan:"💊",
+  Hiburan:"🎮",Pendidikan:"📚",Lainnya:"📝",
 };
 
 function getDateLabel(dateStr: string): string {
@@ -33,11 +33,8 @@ function getDateLabel(dateStr: string): string {
   return date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
 }
 
-export default function HomeTab({
-  displayName, totalBalance, totalIncome, totalExpense,
-  transactions, onEdit, onDelete,
-}: HomeTabProps) {
-  const recent = transactions.slice(0, 15);
+export default function HomeTab({ displayName, totalBalance, totalIncome, totalExpense, transactions, onEdit, onDelete }: HomeTabProps) {
+  const recent = transactions.slice(0, 20);
   const grouped: Record<string, Transaction[]> = {};
   recent.forEach((t) => {
     const label = getDateLabel(t.date);
@@ -46,129 +43,113 @@ export default function HomeTab({
   });
 
   return (
-    <div className="min-h-screen">
-      {/* Header — smooth gradient fade to background */}
-      <div className="relative pt-14 pb-24 px-5 overflow-hidden"
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      {/* TREK Hero Card — balance */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="trek-hero relative overflow-hidden"
         style={{
-          background: "linear-gradient(to bottom, hsl(239 60% 14%) 0%, hsl(239 60% 10%) 40%, transparent 100%)"
-        }}>
-        {/* Decorative blobs */}
-        <div className="absolute -top-8 -right-8 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-20 -left-8 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%)",
+          minHeight: "180px",
+        }}
+      >
+        {/* Decorative circles */}
+        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/5" />
+        <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-white/5" />
 
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-8 relative z-10">
-          <div>
-            <p className="text-indigo-200 text-sm">Selamat datang 👋</p>
-            <h1 className="text-white text-xl font-bold">{displayName}</h1>
+        <div className="relative z-10 p-6">
+          {/* Badge */}
+          <div className="flex items-center justify-between mb-6">
+            <span className="trek-badge">Total Saldo</span>
+            <span className="text-white/60 text-xs font-medium">
+              {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
+            </span>
           </div>
-        </div>
 
-        {/* Balance */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-center relative z-10 mb-2"
-        >
-          <p className="text-indigo-200 text-sm mb-1">Total Saldo</p>
-          <p className="text-white text-4xl font-bold tabular-nums drop-shadow-lg">
+          {/* Balance */}
+          <p className="trek-amount-lg text-white mb-1">
             {formatCurrency(totalBalance)}
           </p>
-        </motion.div>
+          <p className="text-white/50 text-xs font-medium">Selamat datang, {displayName} 👋</p>
+        </div>
+
+        {/* Bottom glassmorphism card */}
+        <div className="mx-4 mb-4 p-4 rounded-2xl relative z-10"
+          style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.2)" }}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1">Pemasukan</p>
+              <p className="text-emerald-300 font-bold text-base tabular-nums">{formatCurrency(totalIncome)}</p>
+            </div>
+            <div className="border-l border-white/20 pl-4">
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1">Pengeluaran</p>
+              <p className="text-rose-300 font-bold text-base tabular-nums">{formatCurrency(totalExpense)}</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Quick stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Transaksi", value: transactions.length.toString(), color: "text-indigo-500" },
+          { label: "Masuk", value: transactions.filter(t => t.type === "income").length.toString(), color: "text-emerald-500" },
+          { label: "Keluar", value: transactions.filter(t => t.type === "expense").length.toString(), color: "text-rose-500" },
+        ].map((stat, i) => (
+          <motion.div key={stat.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
+            className="trek-card p-3 text-center">
+            <p className={cn("text-xl font-800 tabular-nums", stat.color)} style={{ fontWeight: 800 }}>{stat.value}</p>
+            <p className="trek-label mt-0.5">{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Income / Expense cards overlapping header */}
-      <div className="px-4 -mt-14 relative z-20 mb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-3"
-        >
-          <div className="glass rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/5">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-              </div>
-              <span className="text-xs text-muted-foreground">Pemasukan</span>
-            </div>
-            <p className="text-emerald-400 font-bold text-lg tabular-nums">{formatCurrency(totalIncome)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Bulan ini</p>
-          </div>
-          <div className="glass rounded-2xl p-4 border border-rose-500/20 bg-rose-500/5">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center">
-                <TrendingDown className="w-4 h-4 text-rose-400" />
-              </div>
-              <span className="text-xs text-muted-foreground">Pengeluaran</span>
-            </div>
-            <p className="text-rose-400 font-bold text-lg tabular-nums">{formatCurrency(totalExpense)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Bulan ini</p>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="px-4 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-foreground font-semibold">Transaksi Terbaru</h2>
-          <span className="text-xs text-indigo-400">{transactions.length} total</span>
+      {/* Transactions */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-foreground font-bold text-sm">Transaksi Terbaru</p>
+          <span className="trek-pill trek-pill-indigo">{transactions.length} total</span>
         </div>
 
         {transactions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">💸</p>
-            <p className="text-muted-foreground text-sm">Belum ada transaksi</p>
+          <div className="trek-card p-8 text-center">
+            <p className="text-3xl mb-2">💸</p>
+            <p className="text-foreground font-medium text-sm">Belum ada transaksi</p>
             <p className="text-muted-foreground text-xs mt-1">Tekan tombol + untuk menambahkan</p>
           </div>
         ) : (
           <div className="space-y-4">
             {Object.entries(grouped).map(([label, txs]) => (
               <div key={label}>
-                <p className="text-xs text-muted-foreground font-medium mb-2 uppercase tracking-wide">{label}</p>
-                <div className="space-y-2">
+                <p className="trek-label mb-2">{label}</p>
+                <div className="trek-card overflow-hidden">
                   {txs.map((tx, i) => (
-                    <motion.div
-                      key={tx.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="glass rounded-2xl p-3.5 border border-border flex items-center gap-3 group"
-                    >
-                      <div className={cn(
-                        "w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0",
-                        tx.type === "income" ? "bg-emerald-500/15" : "bg-rose-500/15"
+                    <motion.div key={tx.id}
+                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
+                      className={cn("flex items-center gap-3 px-4 py-3 group transition-colors", "hover:bg-secondary/50",
+                        i < txs.length - 1 && "border-b border-border/50"
+                      )}>
+                      <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center text-base flex-shrink-0",
+                        tx.type === "income" ? "bg-emerald-500/12" : "bg-rose-500/12"
                       )}>
                         {CATEGORY_EMOJI[tx.category] || "📝"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        {/* FIX: text-foreground instead of text-white */}
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {tx.description || tx.category}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {tx.category} · {formatShortDate(tx.date)}
-                        </p>
+                        <p className="text-sm font-semibold text-foreground truncate">{tx.description || tx.category}</p>
+                        <p className="text-xs text-muted-foreground">{tx.category} · {formatShortDate(tx.date)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <div className="text-right">
-                          <div className="flex items-center gap-1">
-                            {tx.type === "income"
-                              ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
-                              : <ArrowDownLeft className="w-3.5 h-3.5 text-rose-400" />
-                            }
-                            <p className={cn(
-                              "text-sm font-semibold tabular-nums",
-                              tx.type === "income" ? "text-emerald-400" : "text-rose-400"
-                            )}>
-                              {formatCurrency(tx.amount)}
-                            </p>
-                          </div>
+                          <p className={cn("text-sm font-bold tabular-nums",
+                            tx.type === "income" ? "text-emerald-500" : "text-rose-500"
+                          )}>
+                            {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
+                          </p>
                         </div>
-                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => onEdit(tx)} className="p-1 rounded-lg hover:bg-indigo-500/20 text-muted-foreground hover:text-indigo-400 transition-colors text-[10px]">✏️</button>
-                          <button onClick={() => onDelete(tx.id)} className="p-1 rounded-lg hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400 transition-colors text-[10px]">🗑️</button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => onEdit(tx)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-indigo-500/15 text-muted-foreground hover:text-indigo-500 transition-colors text-xs">✏️</button>
+                          <button onClick={() => onDelete(tx.id)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-rose-500/15 text-muted-foreground hover:text-rose-500 transition-colors text-xs">🗑️</button>
                         </div>
                       </div>
                     </motion.div>
