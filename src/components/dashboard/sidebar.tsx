@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { TrendingUp, LogOut, Home, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,12 +15,9 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose, displayName, email, onLogout, isLoggingOut }: SidebarProps) {
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 glass border-r border-border min-h-screen sticky top-0">
         <SidebarContent displayName={displayName} email={email} onLogout={onLogout} isLoggingOut={isLoggingOut} />
       </aside>
-
-      {/* Mobile drawer */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 glass border-r border-border flex flex-col transition-transform duration-300 lg:hidden",
@@ -51,7 +47,6 @@ function SidebarContent({
 
   return (
     <div className="flex flex-col h-full p-5">
-      {/* Logo */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center neon-indigo">
@@ -68,13 +63,11 @@ function SidebarContent({
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 space-y-1">
         <NavItem icon={Home} label="Dashboard" active />
         <NavItem icon={List} label="Transaksi" />
       </nav>
 
-      {/* User info */}
       <div className="border-t border-border pt-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center">

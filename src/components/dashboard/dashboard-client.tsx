@@ -13,7 +13,7 @@ import TransactionChart from "@/components/dashboard/transaction-chart";
 import TransactionList from "@/components/dashboard/transaction-list";
 import AddTransactionModal from "@/components/dashboard/add-transaction-modal";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, Menu, X } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 
 interface DashboardClientProps {
   user: User;

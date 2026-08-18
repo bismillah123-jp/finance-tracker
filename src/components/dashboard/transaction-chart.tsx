@@ -16,12 +16,24 @@ interface TransactionChartProps {
   transactions: Transaction[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass rounded-xl p-3 border border-border text-sm">
         <p className="text-muted-foreground mb-1">{label}</p>
-        {payload.map((entry: any) => (
+        {payload.map((entry) => (
           <p key={entry.name} style={{ color: entry.color }} className="font-medium">
             {entry.name}: {formatCurrency(entry.value)}
           </p>
@@ -74,7 +86,6 @@ export default function TransactionChart({ transactions }: TransactionChartProps
 
   return (
     <div className="space-y-4">
-      {/* Area chart */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="glass border-border">
           <CardHeader className="pb-2">
@@ -95,7 +106,7 @@ export default function TransactionChart({ transactions }: TransactionChartProps
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`} />
+                <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${(v / 1000000).toFixed(0)}jt`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
                 <Area type="monotone" dataKey="Pemasukan" stroke="#10b981" strokeWidth={2} fill="url(#income)" dot={false} activeDot={{ r: 4, fill: "#10b981" }} />
@@ -106,7 +117,6 @@ export default function TransactionChart({ transactions }: TransactionChartProps
         </Card>
       </motion.div>
 
-      {/* Bar chart: category */}
       {categoryData.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
           <Card className="glass border-border">
@@ -118,7 +128,7 @@ export default function TransactionChart({ transactions }: TransactionChartProps
                 <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}jt`} />
+                  <YAxis tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${(v / 1000000).toFixed(1)}jt`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="value" name="Pengeluaran" fill="#f43f5e" radius={[6, 6, 0, 0]} maxBarSize={40} />
                 </BarChart>
