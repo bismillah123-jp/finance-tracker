@@ -28,12 +28,15 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
+  * { @apply border-border box-sizing-border; }
+  html, body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select {
+    font-size: 16px !important; /* prevent iOS zoom on focus */
   }
 }
 
@@ -41,22 +44,18 @@
   .glass {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .neon-emerald {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-  }
-  .neon-rose {
-    box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
-  }
-  .neon-indigo {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-  }
+  .neon-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+  .neon-rose    { box-shadow: 0 0 20px rgba(244, 63, 94, 0.3); }
+  .neon-indigo  { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .box-sizing-border { box-sizing: border-box; }
+  .touch-action-pan { touch-action: pan-y; }
 }

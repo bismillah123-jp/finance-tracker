@@ -1,4 +1,5 @@
 export type TransactionType = "income" | "expense";
+export type DebtType = "owe" | "lend";
 
 export interface Transaction {
   id: string;
@@ -19,6 +20,18 @@ export interface Profile {
   created_at: string;
 }
 
+export interface Debt {
+  id: string;
+  user_id: string;
+  type: DebtType;
+  person_name: string;
+  amount: number;
+  description: string | null;
+  due_date: string | null;
+  is_paid: boolean;
+  created_at: string;
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -31,6 +44,11 @@ export type Database = {
         Row: Transaction;
         Insert: Omit<Transaction, "id" | "created_at">;
         Update: Partial<Omit<Transaction, "id" | "user_id" | "created_at">>;
+      };
+      debts: {
+        Row: Debt;
+        Insert: Omit<Debt, "id" | "created_at">;
+        Update: Partial<Omit<Debt, "id" | "user_id" | "created_at">>;
       };
     };
   };
