@@ -27,12 +27,20 @@ const MOTIVATIONS = [
   "Catat, analisis, dan tumbuh bersama FinTrack ✨",
   "Uang yang dikelola dengan bijak bekerja untuk kamu 💡",
   "Kebiasaan keuangan yang baik dimulai dari tracking! 📊",
+  "Disiplin finansial bukan soal banyak uang, tapi cara kelolanya 🎯",
+  "Satu transaksi tercatat = satu langkah lebih dekat ke goal 🏆",
 ];
 
+// Stable per calendar-day — hash based on date string so it never changes mid-day
 function getDailyMotivation(): string {
-  const day = new Date().getDate();
-  return MOTIVATIONS[day % MOTIVATIONS.length];
+  const key = new Date().toDateString(); // stable within same day
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  return MOTIVATIONS[Math.abs(hash) % MOTIVATIONS.length];
 }
+
+// Pre-compute ONCE at module level so it never changes during a session
+const DAILY_MOTIVATION = getDailyMotivation();
 
 function getDateLabel(d: string) {
   const date = new Date(d), today = new Date(), yest = new Date(today);
@@ -101,7 +109,7 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
             Selamat datang, <span className="text-white font-semibold">{displayName}</span> 👋
           </p>
           <p className="text-white/40 text-xs leading-relaxed italic">
-            {getDailyMotivation()}
+            {DAILY_MOTIVATION}
           </p>
         </div>
 

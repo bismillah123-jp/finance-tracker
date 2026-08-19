@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Loader2, TrendingUp, TrendingDown, ChevronDown } from "lucide-react";
 import type { Transaction, TransactionType } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIES } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/settings-context";
 
 interface AddTransactionModalProps {
   open: boolean;
@@ -22,6 +23,7 @@ export default function AddTransactionModal({
   open, onClose, onAdd, onUpdate, userId, editingTransaction,
 }: AddTransactionModalProps) {
   const { toast } = useToast();
+  const { settings, formatAmount } = useSettings();
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
@@ -141,7 +143,14 @@ export default function AddTransactionModal({
               <label className="input-label">Jumlah</label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold"
-                  style={{ color: "var(--text-tertiary)" }}>Rp</span>
+                  style={{ color: "var(--text-tertiary)" }}>
+                  {settings?.currency === "IDR" ? "Rp"
+                    : settings?.currency === "USD" ? "$"
+                    : settings?.currency === "EUR" ? "€"
+                    : settings?.currency === "SGD" ? "S$"
+                    : settings?.currency === "MYR" ? "RM"
+                    : "Rp"}
+                </span>
                 <input
                   type="text"
                   inputMode="numeric"

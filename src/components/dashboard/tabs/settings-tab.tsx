@@ -61,10 +61,11 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
   }
 
   async function handleLanguageChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    await updateSettings({ language: e.target.value });
-    toast({ title: "✅ Bahasa diperbarui! Refresh halaman untuk melihat perubahan." });
-    // Force re-render by refreshing the router
-    router.refresh();
+    const lang = e.target.value;
+    await updateSettings({ language: lang });
+    toast({ title: lang === "en" ? "✅ Language updated! Reloading..." : "✅ Bahasa diperbarui! Memuat ulang..." });
+    // Force full page reload so all translated labels re-render
+    setTimeout(() => window.location.reload(), 800);
   }
 
   // ── #7 Avatar upload — fallback to profiles table if storage not available ─
@@ -257,30 +258,7 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
           </select>
         </div>
 
-        {/* #6 Date format dropdown */}
-        <div className="settings-row flex-col items-start gap-1.5">
-          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Format Tanggal</p>
-          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            Preview: {(() => {
-              const d = new Date(); const day = d.getDate().toString().padStart(2,"0");
-              const m = (d.getMonth()+1).toString().padStart(2,"0"); const y = d.getFullYear();
-              const fmt = settings?.date_format ?? "DD/MM/YYYY";
-              if (fmt === "MM/DD/YYYY") return `${m}/${day}/${y}`;
-              if (fmt === "YYYY-MM-DD") return `${y}-${m}-${day}`;
-              return `${day}/${m}/${y}`;
-            })()}
-          </p>
-          <select
-            value={settings?.date_format ?? "DD/MM/YYYY"}
-            onChange={handleDateFormatChange}
-            className="input-field mt-1"
-            style={{ cursor: "pointer" }}
-          >
-            {DATE_FORMATS.map(f => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
-          </select>
-        </div>
+        {/* #6 Date format dropdown REMOVED per user request */}
 
         {/* #6 Language dropdown */}
         <div className="settings-row flex-col items-start gap-1.5">
