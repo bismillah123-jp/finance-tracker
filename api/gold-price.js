@@ -1,4 +1,6 @@
 // api/gold-price.js — Harga emas real-time dari API publik
+export const runtime = 'edge';
+
 const GOLD_PRICE_URL = "https://api-harga.vercel.app/api/harga/emas";
 
 let cache = { price: null, updatedAt: 0 };

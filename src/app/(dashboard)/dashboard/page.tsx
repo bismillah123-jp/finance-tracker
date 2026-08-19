@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/components/dashboard/dashboard-client";
 
+export const runtime = 'edge';
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 

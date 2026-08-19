@@ -1,6 +1,8 @@
 // api/ai-chat.js — ShanIA AI Chat backend for FinTrack
 // Uses openagentic.id with hy3-free (streaming)
 
+export const runtime = 'edge';
+
 const BASE_URL = "https://openagentic.id/api/v1";
 const CHAT_MODEL = "hy3-free";
 const VISION_MODEL = "claude-sonnet-4.5";
