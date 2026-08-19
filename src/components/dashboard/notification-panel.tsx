@@ -41,10 +41,11 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
             className="fixed z-50 rounded-2xl overflow-hidden"
             style={{
               top: "60px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "calc(min(480px, 100vw) - 2rem)",
-              maxWidth: "400px",
+              left: 0,
+              right: 0,
+              marginLeft: "auto",
+              marginRight: "auto",
+              width: "min(420px, calc(100vw - 2rem))",
               background: "var(--bg-card)",
               border: "1px solid var(--border-default)",
               boxShadow: "var(--shadow-lg)",

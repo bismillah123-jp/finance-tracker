@@ -39,7 +39,7 @@ const LANGUAGES = [
 export default function SettingsTab({ user, transactions, userId }: SettingsTabProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const { settings, updateSettings, privacyMode, togglePrivacy, formatAmount } = useSettings();
+  const { settings, updateSettings, privacyMode, togglePrivacy, formatAmount, t } = useSettings();
   const { theme, toggleTheme } = useTheme();
 
   const [newPass, setNewPass] = useState("");
