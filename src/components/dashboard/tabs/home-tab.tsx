@@ -31,16 +31,10 @@ const MOTIVATIONS = [
   "Satu transaksi tercatat = satu langkah lebih dekat ke goal 🏆",
 ];
 
-// Stable per calendar-day — hash based on date string so it never changes mid-day
-function getDailyMotivation(): string {
-  const key = new Date().toDateString(); // stable within same day
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
-  return MOTIVATIONS[Math.abs(hash) % MOTIVATIONS.length];
+// Random tiap render — gonta-ganti setiap pindah tab / refresh
+function getRandomMotivation(): string {
+  return MOTIVATIONS[Math.floor(Math.random() * MOTIVATIONS.length)];
 }
-
-// Pre-compute ONCE at module level so it never changes during a session
-const DAILY_MOTIVATION = getDailyMotivation();
 
 function getDateLabel(d: string) {
   const date = new Date(d), today = new Date(), yest = new Date(today);
@@ -51,7 +45,7 @@ function getDateLabel(d: string) {
 }
 
 export default function HomeTab({ displayName, totalBalance, totalIncome, totalExpense, transactions, onEdit, onDelete }: HomeTabProps) {
-  const { formatAmount, privacyMode, togglePrivacy, formatShortDate } = useSettings();
+  const { formatAmount, privacyMode, togglePrivacy, formatShortDate, t } = useSettings();
 
   const recent = transactions.slice(0, 20);
   const grouped: Record<string, Transaction[]> = {};
@@ -78,7 +72,7 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
           {/* Badge row */}
           <div className="flex items-center justify-between mb-4">
             <span className="glass-chip px-3 py-1.5">
-              <span className="text-[10px] font-bold text-white uppercase tracking-wider">Total Saldo</span>
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">{t("total_balance")}</span>
             </span>
             <span className="text-white/50 text-xs">
               {new Date().toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
@@ -106,10 +100,10 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
 
           {/* Greeting + motivasi (item #3) */}
           <p className="text-white/60 text-sm font-medium mb-1">
-            Selamat datang, <span className="text-white font-semibold">{displayName}</span> 👋
+            {t("welcome")}, <span className="text-white font-semibold">{displayName}</span> 👋
           </p>
           <p className="text-white/40 text-xs leading-relaxed italic">
-            {DAILY_MOTIVATION}
+            {getRandomMotivation()}
           </p>
         </div>
 
@@ -120,14 +114,14 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
-                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">Pemasukan</p>
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">{t("income")}</p>
               </div>
               <p className="text-emerald-300 font-black tabular-nums text-base">{formatAmount(totalIncome)}</p>
             </div>
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.15)", paddingLeft: "1rem" }}>
               <div className="flex items-center gap-1.5 mb-1">
                 <TrendingDown className="w-3.5 h-3.5 text-red-300" />
-                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">Pengeluaran</p>
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">{t("expense")}</p>
               </div>
               <p className="text-red-300 font-black tabular-nums text-base">{formatAmount(totalExpense)}</p>
             </div>
@@ -153,15 +147,15 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
       {/* Recent transactions */}
       <div>
         <div className="section-header">
-          <span className="section-title">Transaksi Terbaru</span>
+          <span className="section-title">{t("recent_transactions")}</span>
           <span className="pill pill-blue">{transactions.length} total</span>
         </div>
 
         {transactions.length === 0 ? (
           <div className="card p-8 text-center">
             <p className="text-3xl mb-2">💸</p>
-            <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Belum ada transaksi</p>
-            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>Tekan + untuk menambahkan</p>
+            <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{t("no_transactions")}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{t("add_first")}</p>
           </div>
         ) : (
           <div className="space-y-4">

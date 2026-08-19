@@ -32,7 +32,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
             onClick={onClose}
           />
 
-          {/* Panel — FIX: constrained width, no overflow */}
+          {/* Panel — center relative to app container (max-w-[480px]) */}
           <motion.div
             initial={{ opacity: 0, y: -12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -43,7 +43,8 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               top: "60px",
               left: "50%",
               transform: "translateX(-50%)",
-              width: "min(360px, calc(100vw - 2rem))",
+              width: "calc(min(480px, 100vw) - 2rem)",
+              maxWidth: "400px",
               background: "var(--bg-card)",
               border: "1px solid var(--border-default)",
               boxShadow: "var(--shadow-lg)",

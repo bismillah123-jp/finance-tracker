@@ -208,7 +208,7 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
 
       {/* ── Avatar ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card p-4">
-        <p className="label-xs mb-3">FOTO PROFIL</p>
+        <p className="label-xs mb-3">{t("profile_photo")}</p>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center"
             style={{ background: "var(--accent-blue)", border: "3px solid var(--border-default)" }}>
@@ -237,7 +237,7 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
       {/* ── App preferences — all dropdowns ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card overflow-hidden">
         <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-          <p className="label-xs">PREFERENSI APLIKASI</p>
+          <p className="label-xs">{t("app_preferences")}</p>
         </div>
 
         {/* #6 Currency dropdown */}
@@ -279,7 +279,7 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
       {/* ── Display ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="card overflow-hidden">
         <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-          <p className="label-xs">TAMPILAN & PRIVASI</p>
+          <p className="label-xs">{t("appearance")}</p>
         </div>
 
         {/* Theme toggle */}
@@ -357,7 +357,7 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
       {/* ── Data portability ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="card overflow-hidden">
         <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-          <p className="label-xs">DATA PORTABILITY</p>
+          <p className="label-xs">{t("data_portability")}</p>
         </div>
 
         <button onClick={handleExportJSON} className="settings-row w-full text-left">
