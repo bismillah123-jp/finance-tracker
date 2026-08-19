@@ -3,7 +3,7 @@
 
 const BASE_URL = "https://openagentic.id/api/v1";
 const CHAT_MODEL = "hy3-free";
-const VISION_MODEL = "ali-qwen-image-2.0";
+const VISION_MODEL = "claude-sonnet-4.5";
 const FALLBACK_MODEL = "nemotron-3-ultra-free";
 
 const SHANIA_PERSONA = `Identitas wajib:
