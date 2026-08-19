@@ -1,5 +1,6 @@
 export type TransactionType = "income" | "expense";
 export type DebtType = "owe" | "lend";
+export type WalletType = "bank" | "ewallet" | "cash" | "credit_card" | "paylater" | "investment" | "gold";
 
 export interface Transaction {
   id: string;
@@ -9,6 +10,7 @@ export interface Transaction {
   category: string;
   description: string | null;
   date: string;
+  wallet_id?: string | null;
   created_at: string;
 }
 
@@ -37,7 +39,7 @@ export interface Budget {
   user_id: string;
   category: string;
   amount: number;
-  month: string; // "YYYY-MM"
+  month: string;
   created_at: string;
 }
 
@@ -51,8 +53,8 @@ export interface SavingsGoal {
   icon: string;
   color: string;
   is_completed: boolean;
-  created_at: string;
   updated_at: string;
+  created_at: string;
 }
 
 export interface Bill {
@@ -76,20 +78,30 @@ export interface UserSettings {
   language: string;
   privacy_mode: boolean;
   avatar_url: string | null;
+  updated_at?: string;
+}
+
+export interface WalletItem {
+  id: string;
+  user_id: string;
+  name: string;
+  type: WalletType;
+  balance: number;
+  gold_grams: number;
+  color: string;
+  icon: string;
+  is_default: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export type Database = {
-  public: {
-    Tables: {
-      profiles: { Row: Profile; Insert: Omit<Profile, "created_at">; Update: Partial<Omit<Profile, "id" | "created_at">>; };
-      transactions: { Row: Transaction; Insert: Omit<Transaction, "id" | "created_at">; Update: Partial<Omit<Transaction, "id" | "user_id" | "created_at">>; };
-      debts: { Row: Debt; Insert: Omit<Debt, "id" | "created_at">; Update: Partial<Omit<Debt, "id" | "user_id" | "created_at">>; };
-      budgets: { Row: Budget; Insert: Omit<Budget, "id" | "created_at">; Update: Partial<Omit<Budget, "id" | "user_id" | "created_at">>; };
-      savings_goals: { Row: SavingsGoal; Insert: Omit<SavingsGoal, "id" | "created_at" | "updated_at">; Update: Partial<Omit<SavingsGoal, "id" | "user_id" | "created_at">>; };
-      bills: { Row: Bill; Insert: Omit<Bill, "id" | "created_at">; Update: Partial<Omit<Bill, "id" | "user_id" | "created_at">>; };
-      user_settings: { Row: UserSettings; Insert: Omit<UserSettings, "id" | "created_at" | "updated_at">; Update: Partial<Omit<UserSettings, "id" | "user_id" | "created_at">>; };
-    };
-  };
-};
+export interface Transfer {
+  id: string;
+  user_id: string;
+  from_wallet_id: string;
+  to_wallet_id: string;
+  amount: number;
+  note: string | null;
+  date: string;
+  created_at: string;
+}

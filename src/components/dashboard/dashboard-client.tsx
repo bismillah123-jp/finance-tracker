@@ -12,10 +12,9 @@ import { NotificationProvider, useNotifications } from "@/contexts/notification-
 import { SettingsProvider, useSettings } from "@/contexts/settings-context";
 import HomeTab from "@/components/dashboard/tabs/home-tab";
 import AnalyticsTab from "@/components/dashboard/tabs/analytics-tab";
-import WalletTab from "@/components/dashboard/tabs/wallet-tab";
-import ProfileTab from "@/components/dashboard/tabs/profile-tab";
+import WalletsTab from "@/components/dashboard/tabs/wallets-tab";
 import DebtTab from "@/components/dashboard/tabs/debt-tab";
-import AITab from "@/components/dashboard/tabs/ai-tab";
+import ShaniaTab from "@/components/dashboard/tabs/shania-tab";
 import BudgetTab from "@/components/dashboard/tabs/budget-tab";
 import BillsTab from "@/components/dashboard/tabs/bills-tab";
 import GoalsTab from "@/components/dashboard/tabs/goals-tab";
@@ -31,15 +30,14 @@ interface DashboardClientProps {
   initialTransactions: Transaction[];
 }
 
-export type TabType = "home" | "analytics" | "wallet" | "debt" | "ai" | "profile" | "budget" | "bills" | "goals" | "settings";
+export type TabType = "home" | "analytics" | "wallets" | "debt" | "shania" | "budget" | "bills" | "goals" | "settings";
 
 const TAB_TITLES: Record<TabType, string> = {
   home: "Dashboard",
   analytics: "Analitik",
-  wallet: "Dompet",
+  wallets: "Dompet",
   debt: "Hutang & Piutang",
-  ai: "AI Insights",
-  profile: "Profil",
+  shania: "ShanIA",
   budget: "Budget",
   bills: "Tagihan",
   goals: "Impian & Tabungan",
@@ -51,7 +49,7 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const { addNotification, unreadCount } = useNotifications();
-  const { privacyMode, togglePrivacy } = useSettings();
+  const { privacyMode } = useSettings();
 
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [activeTab, setActiveTab] = useState<TabType>("home");
@@ -73,7 +71,7 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   const handleAddTransaction = useCallback((tx: Transaction) => {
     setTransactions(prev => [tx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsModalOpen(false); setEditingTransaction(null);
-    addNotification({ type: "success", icon: tx.type === "income" ? "💰" : "💸", title: `${tx.type === "income" ? "Pemasukan" : "Pengeluaran"} Dicatat!`, body: `${tx.category} — Rp ${tx.amount.toLocaleString("id-ID")}` });
+    addNotification({ type: "success", icon: tx.type === "income" ? "💰" : "💸", title: `${tx.type === "income" ? "Pemasukan" : "Pengeluaran"} Dicatat!`, body: `${tx.category} — ${tx.amount.toLocaleString("id-ID")}` });
     toast({ title: "✅ Transaksi ditambahkan!" });
   }, [toast, addNotification]);
 
@@ -92,7 +90,6 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
   }, [toast, addNotification]);
 
   const handleEdit = useCallback((tx: Transaction) => { setEditingTransaction(tx); setIsModalOpen(true); }, []);
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await createClient().auth.signOut();
@@ -103,23 +100,15 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
 
   return (
     <div className="min-h-screen bg-background flex flex-col w-full max-w-[480px] mx-auto relative app-shell">
-
       {/* TOP APP BAR */}
       <header className="app-bar">
-        {/* Left: Logo */}
         <div className="flex items-center gap-2.5 flex-1">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: "var(--accent-blue)" }}>
             <span className="text-xs font-black text-white">F</span>
           </div>
         </div>
-
-        {/* Center: Page title */}
-        <span className="app-bar-title absolute left-1/2 -translate-x-1/2">
-          {TAB_TITLES[activeTab]}
-        </span>
-
-        {/* Right: Action icons — NO privacy eye here (moved to home card) */}
+        <span className="app-bar-title absolute left-1/2 -translate-x-1/2">{TAB_TITLES[activeTab]}</span>
         <div className="flex items-center gap-0.5 flex-1 justify-end">
           <button className="app-bar-icon" onClick={toggleTheme} title="Toggle dark mode">
             {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
@@ -146,14 +135,13 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
         <AnimatePresence mode="wait">
           {activeTab === "home"     && <FadeSlide k="home"><HomeTab displayName={displayName} totalBalance={totalBalance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onEdit={handleEdit} onDelete={handleDeleteTransaction} /></FadeSlide>}
           {activeTab === "analytics"&& <FadeSlide k="analytics"><AnalyticsTab transactions={transactions} /></FadeSlide>}
-          {activeTab === "wallet"   && <FadeSlide k="wallet"><WalletTab transactions={transactions} /></FadeSlide>}
+          {activeTab === "wallets"  && <FadeSlide k="wallets"><WalletsTab userId={user.id} /></FadeSlide>}
           {activeTab === "debt"     && <FadeSlide k="debt"><DebtTab userId={user.id} /></FadeSlide>}
-          {activeTab === "ai"       && <FadeSlide k="ai"><AITab transactions={transactions} displayName={displayName} /></FadeSlide>}
+          {activeTab === "shania"   && <FadeSlide k="shania"><ShaniaTab userId={user.id} transactions={transactions} totalBalance={totalBalance} monthlyIncome={totalIncome} monthlyExpense={totalExpense} onTransactionAdded={handleAddTransaction} /></FadeSlide>}
           {activeTab === "budget"   && <FadeSlide k="budget"><BudgetTab userId={user.id} transactions={transactions} /></FadeSlide>}
           {activeTab === "bills"    && <FadeSlide k="bills"><BillsTab userId={user.id} /></FadeSlide>}
           {activeTab === "goals"    && <FadeSlide k="goals"><GoalsTab userId={user.id} /></FadeSlide>}
           {activeTab === "settings" && <FadeSlide k="settings"><SettingsTab user={user} transactions={transactions} userId={user.id} /></FadeSlide>}
-          {activeTab === "profile"  && <FadeSlide k="profile"><ProfileTab user={user} profile={profile} transactions={transactions} onLogout={handleLogout} isLoggingOut={isLoggingOut} displayName={displayName} /></FadeSlide>}
         </AnimatePresence>
       </div>
 
