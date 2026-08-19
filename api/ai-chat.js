@@ -57,11 +57,20 @@ async function callAI(messages, model = CHAT_MODEL, apiKey) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const text = await res.text().catch(() => "");
+    const err = JSON.parse(text.split("\n")[0].replace(/^data: /, "").trim() || "{}");
     throw new Error(err?.error?.message || `AI request failed: ${res.status}`);
   }
 
-  const data = await res.json();
+  // Handle both pure JSON and SSE-style "data: {...}\ndata: [DONE]"
+  const text = await res.text();
+  const firstLine = text.split("\n")[0].replace(/^data: /, "").trim();
+  let data;
+  try {
+    data = JSON.parse(firstLine);
+  } catch {
+    data = JSON.parse(text);
+  }
   return data.choices?.[0]?.message?.content || "";
 }
 
