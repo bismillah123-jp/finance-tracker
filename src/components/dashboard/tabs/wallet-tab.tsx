@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import type { Transaction } from "@/types/database";
+import { useSettings } from "@/contexts/settings-context";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ interface WalletTabProps {
 }
 
 export default function WalletTab({ transactions }: WalletTabProps) {
+  const { formatAmount, formatShortDate: fmtShort } = useSettings();
   const totalIncome = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = totalIncome - totalExpense;

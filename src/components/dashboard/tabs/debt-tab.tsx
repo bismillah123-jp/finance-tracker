@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, Trash2, Users, ArrowDownLeft, ArrowUpRight, Clock, CheckCircle2 } from "lucide-react";
 import type { Debt } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
+import { useSettings } from "@/contexts/settings-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ interface DebtTabProps {
 
 export default function DebtTab({ userId }: DebtTabProps) {
   const { toast } = useToast();
+  const { formatAmount, formatDate: fmtDate } = useSettings();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

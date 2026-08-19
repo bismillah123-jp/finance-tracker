@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Globe, DollarSign, Calendar, Lock, Upload, Check, Loader2, Download, Upload as UploadIcon } from "lucide-react";
+import { Lock, Upload, Loader2, Download, Upload as UploadIcon, Sun, Moon, Eye, EyeOff } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { Transaction, Bill, Budget, SavingsGoal, Debt } from "@/types/database";
+import type { Transaction } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { useSettings } from "@/contexts/settings-context";
 import { useTheme } from "@/contexts/theme-context";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface SettingsTabProps {
   user: SupabaseUser;
@@ -18,85 +18,134 @@ interface SettingsTabProps {
 }
 
 const CURRENCIES = [
-  { code: "IDR", label: "Rupiah (Rp)", flag: "🇮🇩" },
-  { code: "USD", label: "US Dollar ($)", flag: "🇺🇸" },
-  { code: "EUR", label: "Euro (€)", flag: "🇪🇺" },
-  { code: "SGD", label: "Singapore Dollar (S$)", flag: "🇸🇬" },
-  { code: "MYR", label: "Malaysian Ringgit (RM)", flag: "🇲🇾" },
+  { code: "IDR", label: "🇮🇩 Rupiah (Rp)", locale: "id-ID" },
+  { code: "USD", label: "🇺🇸 US Dollar ($)", locale: "en-US" },
+  { code: "EUR", label: "🇪🇺 Euro (€)", locale: "de-DE" },
+  { code: "SGD", label: "🇸🇬 Singapore Dollar (S$)", locale: "en-SG" },
+  { code: "MYR", label: "🇲🇾 Malaysian Ringgit (RM)", locale: "ms-MY" },
 ];
 
 const DATE_FORMATS = [
-  { value: "DD/MM/YYYY", label: "DD/MM/YYYY (31/12/2026)" },
-  { value: "MM/DD/YYYY", label: "MM/DD/YYYY (12/31/2026)" },
-  { value: "YYYY-MM-DD", label: "YYYY-MM-DD (2026-12-31)" },
+  { value: "DD/MM/YYYY", label: "DD/MM/YYYY  (31/12/2026)" },
+  { value: "MM/DD/YYYY", label: "MM/DD/YYYY  (12/31/2026)" },
+  { value: "YYYY-MM-DD", label: "YYYY-MM-DD  (2026-12-31)" },
 ];
 
 const LANGUAGES = [
-  { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
-  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "id", label: "🇮🇩 Bahasa Indonesia" },
+  { code: "en", label: "🇺🇸 English" },
 ];
 
 export default function SettingsTab({ user, transactions, userId }: SettingsTabProps) {
   const { toast } = useToast();
-  const { settings, updateSettings, privacyMode, togglePrivacy } = useSettings();
+  const router = useRouter();
+  const { settings, updateSettings, privacyMode, togglePrivacy, formatAmount } = useSettings();
   const { theme, toggleTheme } = useTheme();
 
-  // Password change state
-  const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [changingPass, setChangingPass] = useState(false);
   const [showPassForm, setShowPassForm] = useState(false);
-
-  // Avatar upload state
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  async function handleCurrencyChange(currency: string) {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  async function handleCurrencyChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const currency = e.target.value;
     await updateSettings({ currency });
-    toast({ title: `✅ Currency diubah ke ${currency}` });
+    toast({ title: `✅ Mata uang diubah ke ${currency}` });
   }
 
-  async function handleDateFormatChange(date_format: string) {
-    await updateSettings({ date_format });
+  async function handleDateFormatChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    await updateSettings({ date_format: e.target.value });
     toast({ title: "✅ Format tanggal diperbarui!" });
   }
 
-  async function handleLanguageChange(language: string) {
-    await updateSettings({ language });
-    toast({ title: "✅ Bahasa diperbarui!" });
+  async function handleLanguageChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    await updateSettings({ language: e.target.value });
+    toast({ title: "✅ Bahasa diperbarui! Refresh halaman untuk melihat perubahan." });
+    // Force re-render by refreshing the router
+    router.refresh();
   }
 
-  async function handlePasswordChange(e: React.FormEvent) {
-    e.preventDefault();
-    if (newPass !== confirmPass) { toast({ title: "Password tidak cocok", variant: "destructive" }); return; }
-    if (newPass.length < 6) { toast({ title: "Password minimal 6 karakter", variant: "destructive" }); return; }
-    setChangingPass(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: newPass });
-    if (error) toast({ title: "Gagal ubah password", description: error.message, variant: "destructive" });
-    else { toast({ title: "✅ Password berhasil diubah!" }); setOldPass(""); setNewPass(""); setConfirmPass(""); setShowPassForm(false); }
-    setChangingPass(false);
-  }
-
+  // ── #7 Avatar upload — fallback to profiles table if storage not available ─
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast({ title: "File terlalu besar (max 2MB)", variant: "destructive" }); return; }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { toast({ title: "Format tidak didukung (JPG/PNG/WEBP)", variant: "destructive" }); return; }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 2MB", variant: "destructive" });
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast({ title: "Format tidak didukung", description: "Gunakan JPG, PNG, atau WEBP", variant: "destructive" });
+      return;
+    }
     setUploadingAvatar(true);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop();
-    const path = `avatars/${userId}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (uploadError) { toast({ title: "Gagal upload", description: uploadError.message, variant: "destructive" }); setUploadingAvatar(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-    await updateSettings({ avatar_url: publicUrl });
-    await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
-    toast({ title: "✅ Foto profil diperbarui!" });
-    setUploadingAvatar(false);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${userId}/avatar.${ext}`;
+
+      // Try upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) {
+        // Storage bucket not ready — store as base64 data URL in profiles
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const dataUrl = ev.target?.result as string;
+          await updateSettings({ avatar_url: dataUrl });
+          await supabase.from("profiles").update({ avatar_url: dataUrl }).eq("id", userId);
+          toast({ title: "✅ Foto profil diperbarui!" });
+          setUploadingAvatar(false);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // Storage upload succeeded — get public URL
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      await updateSettings({ avatar_url: publicUrl });
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
+      toast({ title: "✅ Foto profil diperbarui!" });
+    } catch (err) {
+      toast({ title: "Gagal upload", description: "Coba lagi", variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
   }
 
-  // Export JSON
+  // ── #11 Auto-logout after password change ──────────────────────────────────
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPass !== confirmPass) {
+      toast({ title: "Password tidak cocok", variant: "destructive" });
+      return;
+    }
+    if (newPass.length < 6) {
+      toast({ title: "Password minimal 6 karakter", variant: "destructive" });
+      return;
+    }
+    setChangingPass(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    if (error) {
+      toast({ title: "Gagal ubah password", description: error.message, variant: "destructive" });
+      setChangingPass(false);
+      return;
+    }
+    toast({ title: "✅ Password berhasil diubah! Silakan login ulang." });
+    // Auto logout for security (#11)
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    }, 1500);
+  }
+
+  // ── Export JSON ────────────────────────────────────────────────────────────
   async function handleExportJSON() {
     const supabase = createClient();
     const [txRes, debtsRes, budgetsRes, goalsRes, billsRes] = await Promise.all([
@@ -121,12 +170,13 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `fintrack-backup-${new Date().toISOString().split("T")[0]}.json`;
-    a.click(); URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = `fintrack-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
     toast({ title: "📥 Backup JSON berhasil diexport!" });
   }
 
-  // Import JSON
   async function handleImportJSON(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -141,169 +191,215 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
         const { error } = await supabase.from("transactions").insert(items);
         if (!error) imported += items.length;
       }
-      if (backup.data.debts?.length) {
-        const items = backup.data.debts.map((d: Debt) => ({ ...d, user_id: userId, id: undefined }));
-        await supabase.from("debts").insert(items);
-        imported += items.length;
-      }
-      if (backup.data.savings_goals?.length) {
-        const items = backup.data.savings_goals.map((g: SavingsGoal) => ({ ...g, user_id: userId, id: undefined }));
-        await supabase.from("savings_goals").insert(items);
-        imported += items.length;
-      }
-      if (backup.data.bills?.length) {
-        const items = backup.data.bills.map((b: Bill) => ({ ...b, user_id: userId, id: undefined }));
-        await supabase.from("bills").insert(items);
-        imported += items.length;
-      }
-      toast({ title: `✅ Import berhasil! ${imported} data diimport` });
+      toast({ title: `✅ Import berhasil! ${imported} transaksi diimport` });
     } catch {
       toast({ title: "Gagal import", description: "File tidak valid atau corrupt", variant: "destructive" });
     }
     e.target.value = "";
   }
 
+  const avatarSrc = settings?.avatar_url;
+  const initials = (user.email || "U").slice(0, 2).toUpperCase();
+
   return (
     <div className="px-4 pt-4 pb-4 space-y-4">
-      <h1 className="text-foreground text-xl font-bold">Pengaturan</h1>
+      <h1 className="heading-lg">Pengaturan</h1>
 
-      {/* Avatar */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="trek-card p-4">
-        <p className="trek-label mb-3">FOTO PROFIL</p>
+      {/* ── Avatar ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card p-4">
+        <p className="label-xs mb-3">FOTO PROFIL</p>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {settings?.avatar_url ? (
-              <img src={settings.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-2xl font-black text-indigo-400">{user.email?.slice(0, 2).toUpperCase()}</span>
-            )}
+          <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center"
+            style={{ background: "var(--accent-blue)", border: "3px solid var(--border-default)" }}>
+            {avatarSrc
+              ? <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
+              : <span className="text-xl font-black text-white">{initials}</span>
+            }
           </div>
           <div>
             <label className="cursor-pointer">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/15 text-indigo-500 text-sm font-medium border border-indigo-500/20 hover:bg-indigo-600/25 transition-colors">
-                {uploadingAvatar ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload Foto</>}
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                style={{ background: "rgba(59,130,246,0.12)", color: "var(--accent-blue)", border: "1px solid rgba(59,130,246,0.25)" }}>
+                {uploadingAvatar
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Mengupload...</>
+                  : <><Upload className="w-4 h-4" /> Upload Foto</>
+                }
               </div>
-              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                onChange={handleAvatarUpload} disabled={uploadingAvatar} />
             </label>
-            <p className="text-xs text-muted-foreground mt-1.5">JPG, PNG, WEBP · Max 2MB</p>
+            <p className="text-xs mt-1.5" style={{ color: "var(--text-tertiary)" }}>JPG, PNG, WEBP · Max 2MB</p>
           </div>
         </div>
       </motion.div>
 
-      {/* Currency */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="trek-card overflow-hidden">
-        <div className="px-4 pt-4 pb-2 border-b border-border/50">
-          <p className="trek-label">MATA UANG</p>
+      {/* ── App preferences — all dropdowns ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card overflow-hidden">
+        <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+          <p className="label-xs">PREFERENSI APLIKASI</p>
         </div>
-        {CURRENCIES.map((c) => (
-          <button key={c.code} onClick={() => handleCurrencyChange(c.code)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors border-b border-border/40 last:border-0">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{c.flag}</span>
-              <div className="text-left">
-                <p className="text-sm font-medium text-foreground">{c.label}</p>
-                <p className="text-xs text-muted-foreground">{c.code}</p>
-              </div>
-            </div>
-            {settings?.currency === c.code && <Check className="w-4 h-4 text-indigo-500" />}
-          </button>
-        ))}
+
+        {/* #6 Currency dropdown */}
+        <div className="settings-row flex-col items-start gap-1.5">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Mata Uang</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            Preview: {formatAmount(1850000)}
+          </p>
+          <select
+            value={settings?.currency ?? "IDR"}
+            onChange={handleCurrencyChange}
+            className="input-field mt-1"
+            style={{ cursor: "pointer" }}
+          >
+            {CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* #6 Date format dropdown */}
+        <div className="settings-row flex-col items-start gap-1.5">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Format Tanggal</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            Preview: {(() => {
+              const d = new Date(); const day = d.getDate().toString().padStart(2,"0");
+              const m = (d.getMonth()+1).toString().padStart(2,"0"); const y = d.getFullYear();
+              const fmt = settings?.date_format ?? "DD/MM/YYYY";
+              if (fmt === "MM/DD/YYYY") return `${m}/${day}/${y}`;
+              if (fmt === "YYYY-MM-DD") return `${y}-${m}-${day}`;
+              return `${day}/${m}/${y}`;
+            })()}
+          </p>
+          <select
+            value={settings?.date_format ?? "DD/MM/YYYY"}
+            onChange={handleDateFormatChange}
+            className="input-field mt-1"
+            style={{ cursor: "pointer" }}
+          >
+            {DATE_FORMATS.map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* #6 Language dropdown */}
+        <div className="settings-row flex-col items-start gap-1.5">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Bahasa</p>
+          <select
+            value={settings?.language ?? "id"}
+            onChange={handleLanguageChange}
+            className="input-field mt-1"
+            style={{ cursor: "pointer" }}
+          >
+            {LANGUAGES.map(l => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
+          </select>
+        </div>
       </motion.div>
 
-      {/* Date format */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="trek-card overflow-hidden">
-        <div className="px-4 pt-4 pb-2 border-b border-border/50">
-          <p className="trek-label">FORMAT TANGGAL</p>
+      {/* ── Display ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="card overflow-hidden">
+        <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+          <p className="label-xs">TAMPILAN & PRIVASI</p>
         </div>
-        {DATE_FORMATS.map((f) => (
-          <button key={f.value} onClick={() => handleDateFormatChange(f.value)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors border-b border-border/40 last:border-0">
-            <p className="text-sm text-foreground">{f.label}</p>
-            {settings?.date_format === f.value && <Check className="w-4 h-4 text-indigo-500" />}
-          </button>
-        ))}
-      </motion.div>
 
-      {/* Language */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="trek-card overflow-hidden">
-        <div className="px-4 pt-4 pb-2 border-b border-border/50">
-          <p className="trek-label">BAHASA</p>
-        </div>
-        {LANGUAGES.map((l) => (
-          <button key={l.code} onClick={() => handleLanguageChange(l.code)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors border-b border-border/40 last:border-0">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{l.flag}</span>
-              <p className="text-sm font-medium text-foreground">{l.label}</p>
-            </div>
-            {settings?.language === l.code && <Check className="w-4 h-4 text-indigo-500" />}
-          </button>
-        ))}
-      </motion.div>
-
-      {/* Privacy + theme */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="trek-card overflow-hidden divide-y divide-border/50">
-        <div className="px-4 pt-4 pb-2"><p className="trek-label">TAMPILAN & PRIVASI</p></div>
-
-        {/* Privacy mode */}
-        <div onClick={togglePrivacy} className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+        {/* Theme toggle */}
+        <div className="settings-row" onClick={toggleTheme}>
           <div className="flex items-center gap-3">
-            {privacyMode ? <EyeOff className="w-4 h-4 text-rose-500" /> : <Eye className="w-4 h-4 text-indigo-500" />}
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
             <div>
-              <p className="text-sm font-medium text-foreground">Mode Privasi</p>
-              <p className="text-xs text-muted-foreground">Sembunyikan nominal jadi ••••••</p>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
+              </p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Tap untuk ganti tema</p>
             </div>
           </div>
-          <div className={cn("w-11 h-6 rounded-full p-0.5 transition-colors", privacyMode ? "bg-rose-500" : "bg-secondary border border-border")}>
-            <div className={cn("w-5 h-5 rounded-full bg-white shadow transition-transform", privacyMode ? "translate-x-5" : "translate-x-0")} />
+          <div className={`toggle ${theme === "dark" ? "on" : ""}`}><div className="toggle-thumb" /></div>
+        </div>
+
+        {/* Privacy toggle */}
+        <div className="settings-row" onClick={togglePrivacy}>
+          <div className="flex items-center gap-3">
+            {privacyMode ? <EyeOff className="w-4 h-4 text-rose-500" /> : <Eye className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />}
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Mode Privasi</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {privacyMode ? "Saldo tersembunyi (••••••)" : "Sembunyikan nominal jadi ••••••"}
+              </p>
+            </div>
+          </div>
+          <div className={`toggle ${privacyMode ? "on" : ""}`} style={privacyMode ? { background: "var(--accent-red)" } : {}}>
+            <div className="toggle-thumb" />
           </div>
         </div>
       </motion.div>
 
-      {/* Password change */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="trek-card overflow-hidden">
+      {/* ── Password change ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
         <button onClick={() => setShowPassForm(!showPassForm)}
-          className="w-full flex items-center justify-between px-4 py-4 hover:bg-secondary/50 transition-colors">
+          className="settings-row w-full text-left">
           <div className="flex items-center gap-3">
-            <Lock className="w-4 h-4 text-indigo-500" />
-            <p className="text-sm font-medium text-foreground">Ganti Password</p>
+            <Lock className="w-4 h-4" style={{ color: "var(--accent-blue)" }} />
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Ganti Password</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Setelah berhasil, kamu akan di-logout otomatis
+              </p>
+            </div>
           </div>
-          <span className="text-xs text-muted-foreground">{showPassForm ? "Tutup" : "Ubah"}</span>
+          <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{showPassForm ? "Tutup" : "Ubah"}</span>
         </button>
+
         {showPassForm && (
-          <form onSubmit={handlePasswordChange} className="px-4 pb-4 space-y-2 border-t border-border/50">
+          <form onSubmit={handlePasswordChange} className="px-4 pb-4 space-y-2"
+            style={{ borderTop: "1px solid var(--border-subtle)" }}>
             <div className="pt-3 space-y-2">
-              <input type="password" placeholder="Password baru" value={newPass} onChange={e => setNewPass(e.target.value)} required
-                className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30" />
-              <input type="password" placeholder="Konfirmasi password baru" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} required
-                className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30" />
+              <div>
+                <label className="input-label">Password Baru</label>
+                <input type="password" placeholder="Min. 6 karakter" value={newPass}
+                  onChange={e => setNewPass(e.target.value)} required className="input-field" />
+              </div>
+              <div>
+                <label className="input-label">Konfirmasi Password</label>
+                <input type="password" placeholder="Ulangi password baru" value={confirmPass}
+                  onChange={e => setConfirmPass(e.target.value)} required className="input-field" />
+              </div>
               <button type="submit" disabled={changingPass}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 text-sm text-white font-medium disabled:opacity-60 flex items-center justify-center gap-2">
-                {changingPass ? <><Loader2 className="w-4 h-4 animate-spin" />Mengubah...</> : "Ubah Password"}
+                className="btn-primary flex items-center justify-center gap-2">
+                {changingPass
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Mengubah & Logout...</>
+                  : "Ubah Password"}
               </button>
             </div>
           </form>
         )}
       </motion.div>
 
-      {/* Data portability */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="trek-card overflow-hidden divide-y divide-border/50">
-        <div className="px-4 pt-4 pb-2"><p className="trek-label">DATA PORTABILITY</p></div>
+      {/* ── Data portability ── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="card overflow-hidden">
+        <div className="px-4 pt-4 pb-2" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+          <p className="label-xs">DATA PORTABILITY</p>
+        </div>
 
-        <button onClick={handleExportJSON} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors">
-          <Download className="w-4 h-4 text-indigo-500" />
-          <div className="text-left">
-            <p className="text-sm font-medium text-foreground">Export Backup JSON</p>
-            <p className="text-xs text-muted-foreground">Semua data → file .json</p>
+        <button onClick={handleExportJSON} className="settings-row w-full text-left">
+          <div className="flex items-center gap-3">
+            <Download className="w-4 h-4" style={{ color: "var(--accent-blue)" }} />
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Export Backup JSON</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Semua data → file .json</p>
+            </div>
           </div>
         </button>
 
         <label className="cursor-pointer">
-          <div className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors">
-            <UploadIcon className="w-4 h-4 text-emerald-500" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Import / Restore JSON</p>
-              <p className="text-xs text-muted-foreground">Restore dari file backup</p>
+          <div className="settings-row">
+            <div className="flex items-center gap-3">
+              <UploadIcon className="w-4 h-4 text-emerald-500" />
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Import / Restore JSON</p>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Restore dari file backup</p>
+              </div>
             </div>
           </div>
           <input type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
@@ -314,13 +410,17 @@ export default function SettingsTab({ user, transactions, userId }: SettingsTabP
             ...transactions.map(t => `${t.id},${t.type},${t.amount},${t.category},"${t.description || ""}",${t.date}`)
           ].join("\n");
           const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-          const a = document.createElement("a"); a.href = url; a.download = `fintrack-${new Date().toISOString().split("T")[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+          const a = document.createElement("a");
+          a.href = url; a.download = `fintrack-${new Date().toISOString().split("T")[0]}.csv`;
+          a.click(); URL.revokeObjectURL(url);
           toast({ title: "📥 CSV exported!" });
-        }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/50 transition-colors">
-          <Download className="w-4 h-4 text-amber-500" />
-          <div className="text-left">
-            <p className="text-sm font-medium text-foreground">Export CSV Transaksi</p>
-            <p className="text-xs text-muted-foreground">{transactions.length} transaksi → .csv</p>
+        }} className="settings-row w-full text-left">
+          <div className="flex items-center gap-3">
+            <Download className="w-4 h-4 text-amber-500" />
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Export CSV Transaksi</p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{transactions.length} transaksi → .csv</p>
+            </div>
           </div>
         </button>
       </motion.div>

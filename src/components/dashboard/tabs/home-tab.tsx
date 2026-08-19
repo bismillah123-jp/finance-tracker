@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Eye, EyeOff, TrendingUp, TrendingDown } from "lucide-react";
 import type { Transaction } from "@/types/database";
-import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { useSettings } from "@/contexts/settings-context";
 
 interface HomeTabProps {
@@ -22,6 +21,19 @@ const CATEGORY_EMOJI: Record<string, string> = {
   Hiburan: "🎮", Pendidikan: "📚", Lainnya: "📝",
 };
 
+const MOTIVATIONS = [
+  "Setiap rupiah yang dicatat adalah langkah menuju kebebasan finansial 🚀",
+  "Konsistensi kecil hari ini = hasil besar esok hari 💪",
+  "Catat, analisis, dan tumbuh bersama FinTrack ✨",
+  "Uang yang dikelola dengan bijak bekerja untuk kamu 💡",
+  "Kebiasaan keuangan yang baik dimulai dari tracking! 📊",
+];
+
+function getDailyMotivation(): string {
+  const day = new Date().getDate();
+  return MOTIVATIONS[day % MOTIVATIONS.length];
+}
+
 function getDateLabel(d: string) {
   const date = new Date(d), today = new Date(), yest = new Date(today);
   yest.setDate(today.getDate() - 1);
@@ -31,7 +43,7 @@ function getDateLabel(d: string) {
 }
 
 export default function HomeTab({ displayName, totalBalance, totalIncome, totalExpense, transactions, onEdit, onDelete }: HomeTabProps) {
-  const { formatAmount } = useSettings();
+  const { formatAmount, privacyMode, togglePrivacy, formatShortDate } = useSettings();
 
   const recent = transactions.slice(0, 20);
   const grouped: Record<string, Transaction[]> = {};
@@ -43,19 +55,20 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
 
   return (
     <div className="px-4 pt-4 pb-4 space-y-4">
-      {/* Balance hero card */}
+      {/* ── Hero balance card ── */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         className="hero-card hero-navy relative overflow-hidden"
-        style={{ minHeight: 180 }}
+        style={{ minHeight: 200 }}
       >
-        {/* Decorative */}
+        {/* Decorative circles */}
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5 pointer-events-none" />
 
         <div className="relative z-10 p-6">
-          <div className="flex items-center justify-between mb-5">
+          {/* Badge row */}
+          <div className="flex items-center justify-between mb-4">
             <span className="glass-chip px-3 py-1.5">
               <span className="text-[10px] font-bold text-white uppercase tracking-wider">Total Saldo</span>
             </span>
@@ -63,12 +76,33 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
               {new Date().toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
             </span>
           </div>
-          {/* FIX: use formatAmount for privacy mode support */}
-          <p className="text-white font-black tabular-nums mb-1"
-            style={{ fontSize: "clamp(1.5rem, 7vw, 2.25rem)", letterSpacing: "-0.03em" }}>
-            {formatAmount(totalBalance)}
+
+          {/* Balance + privacy eye (item #2: icon mata di samping saldo) */}
+          <div className="flex items-center gap-3 mb-1">
+            <p className="text-white font-black tabular-nums"
+              style={{ fontSize: "clamp(1.6rem, 8vw, 2.4rem)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              {formatAmount(totalBalance)}
+            </p>
+            <button
+              onClick={togglePrivacy}
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
+              title={privacyMode ? "Tampilkan saldo" : "Sembunyikan saldo"}
+            >
+              {privacyMode
+                ? <EyeOff className="w-4 h-4 text-rose-300" />
+                : <Eye className="w-4 h-4 text-white/80" />
+              }
+            </button>
+          </div>
+
+          {/* Greeting + motivasi (item #3) */}
+          <p className="text-white/60 text-sm font-medium mb-1">
+            Selamat datang, <span className="text-white font-semibold">{displayName}</span> 👋
           </p>
-          <p className="text-white/50 text-sm">Selamat datang, {displayName} 👋</p>
+          <p className="text-white/40 text-xs leading-relaxed italic">
+            {getDailyMotivation()}
+          </p>
         </div>
 
         {/* Income/expense glass row */}
@@ -136,12 +170,9 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
                       className="tx-item group"
                       style={{ borderBottom: i < txs.length - 1 ? "1px solid var(--border-subtle)" : "none" }}
                     >
-                      {/* Icon */}
                       <div className={`tx-icon ${tx.type === "income" ? "tx-icon-income" : "tx-icon-expense"}`}>
                         {CATEGORY_EMOJI[tx.category] || "📝"}
                       </div>
-
-                      {/* Info — FIX: single description, no duplicate */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
                           {tx.description && tx.description.trim() !== "" ? tx.description : tx.category}
@@ -150,29 +181,22 @@ export default function HomeTab({ displayName, totalBalance, totalIncome, totalE
                           {tx.category} · {formatShortDate(tx.date)}
                         </p>
                       </div>
-
-                      {/* Amount */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <p className="text-sm font-bold tabular-nums"
                           style={{ color: tx.type === "income" ? "var(--accent-green)" : "var(--accent-red)" }}>
                           {tx.type === "income" ? "+" : "-"}{formatAmount(tx.amount)}
                         </p>
-                        {/* Actions on hover */}
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => onEdit(tx)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-colors"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
                             style={{ color: "var(--text-tertiary)" }}
-                            onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent-blue)"}
-                            onMouseLeave={(e) => e.currentTarget.style.color = "var(--text-tertiary)"}>
-                            ✏️
-                          </button>
+                            onMouseEnter={e => (e.currentTarget.style.color = "var(--accent-blue)")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-tertiary)")}>✏️</button>
                           <button onClick={() => onDelete(tx.id)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-colors"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
                             style={{ color: "var(--text-tertiary)" }}
-                            onMouseEnter={(e) => e.currentTarget.style.color = "var(--accent-red)"}
-                            onMouseLeave={(e) => e.currentTarget.style.color = "var(--text-tertiary)"}>
-                            🗑️
-                          </button>
+                            onMouseEnter={e => (e.currentTarget.style.color = "var(--accent-red)")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-tertiary)")}>🗑️</button>
                         </div>
                       </div>
                     </motion.div>

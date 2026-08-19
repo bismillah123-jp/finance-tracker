@@ -4,12 +4,75 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { createClient } from "@/lib/supabase/client";
 import type { UserSettings } from "@/types/database";
 
+// ─── Translation strings ───────────────────────────────────────────────────
+const TRANSLATIONS: Record<string, Record<string, string>> = {
+  id: {
+    dashboard: "Dashboard",
+    analytics: "Analitik",
+    wallet: "Dompet",
+    budget: "Budget",
+    bills: "Tagihan",
+    goals: "Impian & Tabungan",
+    debt: "Hutang & Piutang",
+    ai: "AI Insights",
+    settings: "Pengaturan",
+    profile: "Profil",
+    income: "Pemasukan",
+    expense: "Pengeluaran",
+    total_balance: "Total Saldo",
+    today: "Hari Ini",
+    yesterday: "Kemarin",
+    add_transaction: "Tambah Transaksi",
+    save: "Simpan",
+    cancel: "Batal",
+    amount: "Jumlah",
+    category: "Kategori",
+    description: "Keterangan",
+    date: "Tanggal",
+    search: "Cari...",
+    all: "Semua",
+    welcome: "Selamat datang",
+    net_cashflow: "Arus Kas",
+  },
+  en: {
+    dashboard: "Dashboard",
+    analytics: "Analytics",
+    wallet: "Wallet",
+    budget: "Budget",
+    bills: "Bills",
+    goals: "Savings Goals",
+    debt: "Debts & Loans",
+    ai: "AI Insights",
+    settings: "Settings",
+    profile: "Profile",
+    income: "Income",
+    expense: "Expense",
+    total_balance: "Total Balance",
+    today: "Today",
+    yesterday: "Yesterday",
+    add_transaction: "Add Transaction",
+    save: "Save",
+    cancel: "Cancel",
+    amount: "Amount",
+    category: "Category",
+    description: "Notes",
+    date: "Date",
+    search: "Search...",
+    all: "All",
+    welcome: "Welcome",
+    net_cashflow: "Net Cashflow",
+  },
+};
+
 interface SettingsContextType {
   settings: UserSettings | null;
   privacyMode: boolean;
   togglePrivacy: () => void;
   updateSettings: (updates: Partial<UserSettings>) => Promise<void>;
   formatAmount: (amount: number) => string;
+  formatDate: (dateStr: string) => string;
+  formatShortDate: (dateStr: string) => string;
+  t: (key: string) => string;
   isLoading: boolean;
 }
 
@@ -27,6 +90,9 @@ const SettingsContext = createContext<SettingsContextType>({
   togglePrivacy: () => {},
   updateSettings: async () => {},
   formatAmount: (n) => `Rp ${n.toLocaleString("id-ID")}`,
+  formatDate: (d) => d,
+  formatShortDate: (d) => d,
+  t: (k) => k,
   isLoading: true,
 });
 
@@ -45,7 +111,6 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
           .single();
 
         if (error || !data) {
-          // Auto-create default settings
           const { data: created } = await supabase
             .from("user_settings")
             .insert({ user_id: userId, ...DEFAULT_SETTINGS })
@@ -69,20 +134,14 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
       if (!prev) return prev;
       const newPrivacy = !prev.privacy_mode;
       const next = { ...prev, privacy_mode: newPrivacy };
-      // Persist async
-      createClient()
-        .from("user_settings")
-        .update({ privacy_mode: newPrivacy })
-        .eq("user_id", userId)
-        .then(() => {});
+      createClient().from("user_settings").update({ privacy_mode: newPrivacy }).eq("user_id", userId).then(() => {});
       return next;
     });
   }, [userId]);
 
   const updateSettings = useCallback(async (updates: Partial<UserSettings>) => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
+      const { data, error } = await createClient()
         .from("user_settings")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("user_id", userId)
@@ -94,20 +153,13 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
     }
   }, [userId]);
 
+  // ─── Format amount using live settings ────────────────────────────────────
   const formatAmount = useCallback((amount: number): string => {
-    // Privacy mode: show dots
     if (settings?.privacy_mode) return "••••••";
     const currency = settings?.currency ?? "IDR";
     try {
-      if (currency === "IDR") {
-        return new Intl.NumberFormat("id-ID", {
-          style: "currency",
-          currency: "IDR",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(amount);
-      }
-      return new Intl.NumberFormat("en-US", {
+      const locale = currency === "IDR" ? "id-ID" : "en-US";
+      return new Intl.NumberFormat(locale, {
         style: "currency",
         currency,
         minimumFractionDigits: 0,
@@ -118,6 +170,44 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
     }
   }, [settings]);
 
+  // ─── Format date using live settings ──────────────────────────────────────
+  const formatDate = useCallback((dateStr: string): string => {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      const d = date.getDate().toString().padStart(2, "0");
+      const m = (date.getMonth() + 1).toString().padStart(2, "0");
+      const y = date.getFullYear();
+      const fmt = settings?.date_format ?? "DD/MM/YYYY";
+      if (fmt === "MM/DD/YYYY") return `${m}/${d}/${y}`;
+      if (fmt === "YYYY-MM-DD") return `${y}-${m}-${d}`;
+      return `${d}/${m}/${y}`; // default DD/MM/YYYY
+    } catch {
+      return dateStr;
+    }
+  }, [settings]);
+
+  // ─── Format short date ─────────────────────────────────────────────────────
+  const formatShortDate = useCallback((dateStr: string): string => {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      const lang = settings?.language ?? "id";
+      return date.toLocaleDateString(lang === "id" ? "id-ID" : "en-US", {
+        day: "numeric",
+        month: "short",
+      });
+    } catch {
+      return dateStr;
+    }
+  }, [settings]);
+
+  // ─── Translation function ──────────────────────────────────────────────────
+  const t = useCallback((key: string): string => {
+    const lang = settings?.language ?? "id";
+    return TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS["id"][key] ?? key;
+  }, [settings]);
+
   return (
     <SettingsContext.Provider value={{
       settings,
@@ -125,6 +215,9 @@ export function SettingsProvider({ userId, children }: { userId: string; childre
       togglePrivacy,
       updateSettings,
       formatAmount,
+      formatDate,
+      formatShortDate,
+      t,
       isLoading,
     }}>
       {children}

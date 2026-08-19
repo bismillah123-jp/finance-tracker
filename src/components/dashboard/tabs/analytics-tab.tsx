@@ -11,6 +11,7 @@ import { id } from "date-fns/locale";
 import type { Transaction } from "@/types/database";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/contexts/settings-context";
 
 interface AnalyticsTabProps {
   transactions: Transaction[];
@@ -29,11 +30,11 @@ interface TooltipEntry {
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipEntry[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="glass rounded-xl p-3 border border-border text-xs shadow-xl">
-        <p className="text-muted-foreground mb-1">{label}</p>
+      <div className="glass-chip p-3 text-xs" style={{ background: "var(--bg-card)", border: "1px solid var(--border-default)" }}>
+        <p style={{ color: "var(--text-secondary)" }} className="mb-1">{label}</p>
         {payload.map((e) => (
           <p key={e.name} style={{ color: e.color }} className="font-semibold">
-            {e.name}: {formatCurrency(e.value)}
+            {e.name}: {e.value.toLocaleString("id-ID")}
           </p>
         ))}
       </div>
@@ -44,6 +45,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 export default function AnalyticsTab({ transactions }: AnalyticsTabProps) {
   const [view, setView] = useState<ViewType>("expense");
+  const { formatAmount } = useSettings();
 
   // Chart data — shows BOTH lines always (for context), but highlights active view
   const chartData = useMemo(() => {
@@ -142,11 +144,11 @@ export default function AnalyticsTab({ transactions }: AnalyticsTabProps) {
           Total {view === "expense" ? "Pengeluaran" : "Pemasukan"} Bulan Ini
         </p>
         <p className={cn("text-3xl font-bold tabular-nums",
-          view === "expense"
-            ? totalThisMonth > 0 ? "text-rose-400" : "text-muted-foreground"
-            : totalThisMonth > 0 ? "text-emerald-400" : "text-muted-foreground"
+        view === "expense"
+          ? totalThisMonth > 0 ? "text-rose-400" : "text-muted-foreground"
+          : totalThisMonth > 0 ? "text-emerald-400" : "text-muted-foreground"
         )}>
-          {formatCurrency(totalThisMonth)}
+        {formatAmount(totalThisMonth)}
         </p>
         {totalThisMonth === 0 && (
           <p className="text-xs text-muted-foreground mt-1">
@@ -223,7 +225,7 @@ export default function AnalyticsTab({ transactions }: AnalyticsTabProps) {
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip formatter={(v: number) => formatAmount(v)} />
                 <Legend wrapperStyle={{ fontSize: "11px" }} />
               </PieChart>
             </ResponsiveContainer>

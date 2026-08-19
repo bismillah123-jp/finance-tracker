@@ -23,7 +23,7 @@ import SettingsTab from "@/components/dashboard/tabs/settings-tab";
 import AddTransactionModal from "@/components/dashboard/add-transaction-modal";
 import BottomNav from "@/components/dashboard/bottom-nav";
 import NotificationPanel from "@/components/dashboard/notification-panel";
-import { Menu, Bell, Sun, Moon, Eye, EyeOff, RefreshCw, LogOut } from "lucide-react";
+import { Bell, Sun, Moon, LogOut } from "lucide-react";
 
 interface DashboardClientProps {
   user: User;
@@ -34,7 +34,7 @@ interface DashboardClientProps {
 export type TabType = "home" | "analytics" | "wallet" | "debt" | "ai" | "profile" | "budget" | "bills" | "goals" | "settings";
 
 const TAB_TITLES: Record<TabType, string> = {
-  home: "Dashboard Utama",
+  home: "Dashboard",
   analytics: "Analitik",
   wallet: "Dompet",
   debt: "Hutang & Piutang",
@@ -119,11 +119,8 @@ function DashboardInner({ user, profile, initialTransactions }: DashboardClientP
           {TAB_TITLES[activeTab]}
         </span>
 
-        {/* Right: Action icons */}
+        {/* Right: Action icons — NO privacy eye here (moved to home card) */}
         <div className="flex items-center gap-0.5 flex-1 justify-end">
-          <button className="app-bar-icon" onClick={togglePrivacy} title="Sembunyikan saldo">
-            {privacyMode ? <EyeOff className="w-4 h-4 text-rose-400" /> : <Eye className="w-4 h-4" />}
-          </button>
           <button className="app-bar-icon" onClick={toggleTheme} title="Toggle dark mode">
             {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
