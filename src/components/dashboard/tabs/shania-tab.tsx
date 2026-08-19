@@ -474,7 +474,7 @@ export default function ShaniaTab({ userId, transactions, totalBalance, monthlyI
             title="Scan struk">
             <Camera className="w-4 h-4" />
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
 
           <input ref={inputRef} type="text" value={input}
             onChange={e => setInput(e.target.value)}
