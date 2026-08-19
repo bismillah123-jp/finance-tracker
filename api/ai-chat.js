@@ -1,5 +1,5 @@
-// api/ai-chat.js — AI Chat backend for FinTrack
-// Uses openagentic.id with hy3-free (chat) + ali-qwen-image-2.0 (vision/receipt)
+// api/ai-chat.js — ShanIA AI Chat backend for FinTrack
+// Uses openagentic.id with hy3-free (streaming)
 
 const BASE_URL = "https://openagentic.id/api/v1";
 const CHAT_MODEL = "hy3-free";
@@ -41,7 +41,43 @@ Data keuangan user saat ini:
 - Transaksi terbaru: ${context.recentTransactions?.slice(0,3).map(t => `${t.category} ${t.amount}`).join(', ') || '-'}
 `;
 
-async function callAI(messages, model = CHAT_MODEL, apiKey) {
+// Parse response that may be pure JSON or SSE stream
+async function parseAIResponse(response) {
+  const text = await response.text();
+
+  // Try pure JSON first
+  try {
+    const data = JSON.parse(text);
+    return data.choices?.[0]?.message?.content || "";
+  } catch {
+    // SSE format: collect all data: lines
+    const lines = text.split("\n");
+    let fullContent = "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const payload = trimmed.slice(5).trim();
+      if (payload === "[DONE]") break;
+      try {
+        const chunk = JSON.parse(payload);
+        // Non-streaming chunk (full message)
+        if (chunk.choices?.[0]?.message?.content) {
+          return chunk.choices[0].message.content;
+        }
+        // Streaming delta
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (delta) fullContent += delta;
+      } catch {
+        // skip malformed lines
+      }
+    }
+
+    return fullContent || "";
+  }
+}
+
+async function callAI(messages, model, apiKey, useStream = false) {
   const res = await fetch(`${BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
@@ -53,25 +89,25 @@ async function callAI(messages, model = CHAT_MODEL, apiKey) {
       messages,
       max_tokens: 1024,
       temperature: 0.7,
+      stream: useStream,
     }),
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const err = JSON.parse(text.split("\n")[0].replace(/^data: /, "").trim() || "{}");
-    throw new Error(err?.error?.message || `AI request failed: ${res.status}`);
+    const errText = await res.text().catch(() => "{}");
+    let errMsg = `AI request failed: ${res.status}`;
+    try {
+      const lines = errText.split("\n");
+      const firstJson = lines.find(l => l.trim().startsWith("{") || l.replace(/^data:\s*/, "").trim().startsWith("{"));
+      if (firstJson) {
+        const parsed = JSON.parse(firstJson.replace(/^data:\s*/, "").trim());
+        errMsg = parsed?.error?.message || errMsg;
+      }
+    } catch { /* ignore */ }
+    throw new Error(errMsg);
   }
 
-  // Handle both pure JSON and SSE-style "data: {...}\ndata: [DONE]"
-  const text = await res.text();
-  const firstLine = text.split("\n")[0].replace(/^data: /, "").trim();
-  let data;
-  try {
-    data = JSON.parse(firstLine);
-  } catch {
-    data = JSON.parse(text);
-  }
-  return data.choices?.[0]?.message?.content || "";
+  return parseAIResponse(res);
 }
 
 export default async function handler(req, res) {
@@ -91,13 +127,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "message or imageBase64 required" });
     }
 
-    // Build messages array
+    const systemContent = SHANIA_PERSONA + (context ? "\n\n" + FINANCE_CONTEXT_PROMPT(context) : "");
+
     const messages = [
-      {
-        role: "system",
-        content: SHANIA_PERSONA + (context ? "\n\n" + FINANCE_CONTEXT_PROMPT(context) : ""),
-      },
-      // Include last 10 messages from history
+      { role: "system", content: systemContent },
       ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
     ];
 
@@ -117,46 +150,60 @@ export default async function handler(req, res) {
         ],
       });
 
-      let reply;
+      let reply = "";
       try {
-        reply = await callAI(messages, VISION_MODEL, apiKey);
-      } catch (e) {
-        // Fallback vision model
-        reply = await callAI(messages, "ali-qwen-image-max", apiKey);
+        reply = await callAI(messages, VISION_MODEL, apiKey, false);
+      } catch {
+        try {
+          reply = await callAI(messages, "ali-qwen-image-max", apiKey, false);
+        } catch (e2) {
+          reply = "Bestie maaf, scan struk lagi ga bisa sekarang 😭 Coba lagi bentar ya!";
+        }
       }
 
       return res.status(200).json({ reply, isReceipt: true });
     }
 
-    // Regular chat
+    // Regular chat — try streaming first, fallback to non-streaming
     messages.push({ role: "user", content: message });
 
-    let reply;
+    let reply = "";
     try {
-      reply = await callAI(messages, CHAT_MODEL, apiKey);
-    } catch (e) {
-      // Fallback
-      reply = await callAI(messages, FALLBACK_MODEL, apiKey);
+      // Try with stream: true first (hy3-free prefers it)
+      reply = await callAI(messages, CHAT_MODEL, apiKey, true);
+      if (!reply) throw new Error("Empty reply from stream");
+    } catch {
+      try {
+        // Fallback: stream: false
+        reply = await callAI(messages, CHAT_MODEL, apiKey, false);
+        if (!reply) throw new Error("Empty reply non-stream");
+      } catch {
+        // Final fallback model
+        reply = await callAI(messages, FALLBACK_MODEL, apiKey, false);
+      }
     }
 
-    // Parse action if present
+    if (!reply) {
+      reply = "Bestie ShanIA lagi mikir keras nih 😭 Coba tanya lagi ya!";
+    }
+
+    // Parse action tag if present
     let action = null;
     const actionMatch = reply.match(/<action>([\s\S]*?)<\/action>/);
     if (actionMatch) {
       try {
         action = JSON.parse(actionMatch[1]);
         reply = reply.replace(/<action>[\s\S]*?<\/action>/g, "").trim();
-      } catch (e) {
-        // ignore parse error
-      }
+      } catch { /* ignore */ }
     }
 
     return res.status(200).json({ reply, action });
+
   } catch (error) {
     console.error("AI chat error:", error);
     return res.status(500).json({
       error: "AI service error",
-      reply: "Waduh bestie, ShanIA lagi error nih 😭 Coba lagi ya!",
+      reply: "Bestie ShanIA timeout nih 😭 Internet atau AI-nya lagi lemot, coba lagi ya!",
     });
   }
 }
