@@ -1,4 +1,4 @@
-// api/ai-chat.js — ShanIA AI Chat backend for FinTrack
+// ShanIA AI Chat backend for FinTrack
 // Uses openagentic.id with hy3-free (streaming)
 
 export const runtime = 'edge';
@@ -33,18 +33,18 @@ Format action JSON:
 <action>{"type":"balance_summary"}</action>
 <action>{"type":"create_transfer","data":{"from_wallet":"nama_dompet","to_wallet":"nama_dompet","amount":100000,"note":"transfer"}}</action>`;
 
-const FINANCE_CONTEXT_PROMPT = (context) => `
+const FINANCE_CONTEXT_PROMPT = (context: any) => `
 Data keuangan user saat ini:
 - Total saldo: ${context.totalBalance}
 - Pemasukan bulan ini: ${context.monthlyIncome}
 - Pengeluaran bulan ini: ${context.monthlyExpense}
 - Jumlah transaksi: ${context.transactionCount}
-- Dompet aktif: ${context.wallets?.map(w => `${w.name} (${w.balance})`).join(', ') || 'belum ada'}
-- Transaksi terbaru: ${context.recentTransactions?.slice(0,3).map(t => `${t.category} ${t.amount}`).join(', ') || '-'}
+- Dompet aktif: ${context.wallets?.map((w: any) => `${w.name} (${w.balance})`).join(', ') || 'belum ada'}
+- Transaksi terbaru: ${context.recentTransactions?.slice(0,3).map((t: any) => `${t.category} ${t.amount}`).join(', ') || '-'}
 `;
 
 // Parse response that may be pure JSON or SSE stream
-async function parseAIResponse(response) {
+async function parseAIResponse(response: Response) {
   const text = await response.text();
 
   // Try pure JSON first
@@ -79,7 +79,7 @@ async function parseAIResponse(response) {
   }
 }
 
-async function callAI(messages, model, apiKey, useStream = false) {
+async function callAI(messages: any[], model: string, apiKey: string, useStream = false) {
   const res = await fetch(`${BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
@@ -112,28 +112,25 @@ async function callAI(messages, model, apiKey, useStream = false) {
   return parseAIResponse(res);
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export async function POST(request: Request) {
   const apiKey = process.env.OPENAGENTIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "AI service not configured" });
+    return Response.json({ error: "AI service not configured" }, { status: 500 });
   }
 
   try {
-    const { message, context, history = [], imageBase64, imageUrl } = req.body;
+    const body = await request.json();
+    const { message, context, history = [], imageBase64, imageUrl } = body;
 
     if (!message && !imageBase64 && !imageUrl) {
-      return res.status(400).json({ error: "message or image required" });
+      return Response.json({ error: "message or image required" }, { status: 400 });
     }
 
     const systemContent = SHANIA_PERSONA + (context ? "\n\n" + FINANCE_CONTEXT_PROMPT(context) : "");
 
     const messages = [
       { role: "system", content: systemContent },
-      ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
+      ...history.slice(-10).map((h: any) => ({ role: h.role, content: h.content })),
     ];
 
     // Handle image (scan struk) — supports both URL and base64
@@ -164,7 +161,7 @@ export default async function handler(req, res) {
         }
       }
 
-      return res.status(200).json({ reply, isReceipt: true });
+      return Response.json({ reply, isReceipt: true });
     }
 
     // Regular chat — try streaming first, fallback to non-streaming
@@ -200,13 +197,13 @@ export default async function handler(req, res) {
       } catch { /* ignore */ }
     }
 
-    return res.status(200).json({ reply, action });
+    return Response.json({ reply, action });
 
   } catch (error) {
     console.error("AI chat error:", error);
-    return res.status(500).json({
+    return Response.json({
       error: "AI service error",
       reply: "Bestie ShanIA timeout nih 😭 Internet atau AI-nya lagi lemot, coba lagi ya!",
-    });
+    }, { status: 500 });
   }
 }
