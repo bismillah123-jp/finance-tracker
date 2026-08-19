@@ -149,15 +149,102 @@ export default function ShaniaTab({ userId, transactions, totalBalance, monthlyI
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target?.result as string;
-      const base64 = dataUrl.split(",")[1];
-      setScanMode(false);
-      await handleSend("Scan struk ini dan catat transaksinya", base64);
+    setScanMode(false);
+    setLoading(true);
+
+    // Upload to Supabase Storage first to get a public URL
+    // (Vercel function has 10s timeout — base64 payloads are too large)
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `receipts/${userId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars") // reuse existing public bucket
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      let imageUrl: string | undefined;
+
+      if (!uploadError) {
+        const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+        imageUrl = publicUrl;
+      }
+
+      // Fallback: use base64 if upload failed
+      if (!imageUrl) {
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const dataUrl = ev.target?.result as string;
+          const base64 = dataUrl.split(",")[1];
+          await sendImageToShanIA(base64, undefined);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      await sendImageToShanIA(undefined, imageUrl);
+    } catch {
+      // Final fallback: base64
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        await sendImageToShanIA(base64, undefined);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      e.target.value = "";
+    }
+  }
+
+  async function sendImageToShanIA(imageBase64?: string, imageUrl?: string) {
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: "📷 Scan struk ini",
+      createdAt: new Date(),
     };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    setMessages(prev => [...prev, userMsg]);
+
+    try {
+      const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+      const res = await fetch("/api/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "Scan struk ini dan catat transaksinya",
+          context: buildContext(),
+          history,
+          imageBase64,
+          imageUrl,
+        }),
+      });
+
+      const data = await res.json();
+      const reply = data.reply || "Waduh bestie, scan struk error nih 😭";
+      const action = data.action;
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: reply,
+        createdAt: new Date(),
+        action,
+      }]);
+
+      if (action?.type === "create_transaction" && action.data) {
+        await handleCreateTransaction(action.data as Record<string, unknown>);
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Bestie ShanIA timeout nih 😭 Coba lagi ya!",
+        createdAt: new Date(),
+      }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const QUICK_PROMPTS = [

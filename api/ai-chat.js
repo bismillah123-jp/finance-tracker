@@ -121,10 +121,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, context, history = [], imageBase64 } = req.body;
+    const { message, context, history = [], imageBase64, imageUrl } = req.body;
 
-    if (!message && !imageBase64) {
-      return res.status(400).json({ error: "message or imageBase64 required" });
+    if (!message && !imageBase64 && !imageUrl) {
+      return res.status(400).json({ error: "message or image required" });
     }
 
     const systemContent = SHANIA_PERSONA + (context ? "\n\n" + FINANCE_CONTEXT_PROMPT(context) : "");
@@ -134,8 +134,12 @@ export default async function handler(req, res) {
       ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
     ];
 
-    // Handle image (scan struk)
-    if (imageBase64) {
+    // Handle image (scan struk) — supports both URL and base64
+    if (imageBase64 || imageUrl) {
+      const imageContent = imageUrl
+        ? { type: "image_url", image_url: { url: imageUrl } }
+        : { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } };
+
       messages.push({
         role: "user",
         content: [
@@ -143,10 +147,7 @@ export default async function handler(req, res) {
             type: "text",
             text: message || "Ini struk/bon transaksi. Tolong parse dan ekstrak: nama toko, total bayar, item-item yang dibeli, tanggal. Jawab dalam format JSON: {\"store\":\"...\",\"total\":0,\"date\":\"YYYY-MM-DD\",\"items\":[{\"name\":\"...\",\"price\":0}],\"category\":\"Makanan/Belanja/Tagihan/dll\"}",
           },
-          {
-            type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
-          },
+          imageContent,
         ],
       });
 
